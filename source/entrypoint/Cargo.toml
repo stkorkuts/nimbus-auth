@@ -1,0 +1,13 @@
+[package]
+name = "nimbus_auth_entrypoint"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nimbus_auth_domain = { path = "../domain" }
+nimbus_auth_application = { path = "../application" }
+nimbus_auth_infrastructure = { path = "../infrastructure" }
+nimbus_auth_shared = { path = "../shared" }
+
+dotenvy = { version = "0.15.7" }
+tokio = { version = "1.45.1", features = ["full"] }

@@ -1,0 +1,8 @@
+[package]
+name = "nimbus_auth_application"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nimbus_auth_domain = { path = "../domain" }
+nimbus_auth_shared = { path = "../shared" }

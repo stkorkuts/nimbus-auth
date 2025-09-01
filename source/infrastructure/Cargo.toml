@@ -1,0 +1,13 @@
+[package]
+name = "nimbus_auth_infrastructure"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+
+# Protobuf
+prost = "0.12"
+
+[build-dependencies]
+prost-build = "0.12"
