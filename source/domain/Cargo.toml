@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 nimbus_auth_shared = { path = "../shared" }
+
+# Common
+time = "0.3.42"
