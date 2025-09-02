@@ -8,3 +8,4 @@ nimbus_auth_shared = { path = "../shared" }
 
 # Common
 time = "0.3.42"
+ulid = "1.2.1"
