@@ -1,6 +1,6 @@
 use ulid::Ulid;
 
-use crate::{entities::Entity, value_objects::Identifier};
+use crate::{entities::Entity, value_objects::identifier::Identifier};
 
 pub struct User {
     id: Identifier<Ulid, User>,

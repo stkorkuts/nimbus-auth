@@ -8,13 +8,14 @@ use crate::{
     entities::{
         Entity,
         session::specifications::{NewSessionSpecification, RestoreSessionSpecification},
+        user::User,
     },
-    value_objects::{Identifier, IdentifierOfType},
+    value_objects::identifier::{Identifier, IdentifierOfType},
 };
 
 pub trait SessionState {}
 
-pub struct Initial {}
+pub struct Uninitialized {}
 
 pub struct Active {
     expires_at: UtcDateTime,
@@ -30,10 +31,11 @@ pub struct Revoked {
 
 pub struct Session<State: SessionState> {
     id: Identifier<Ulid, Session<State>>,
+    user_id: Identifier<Ulid, User>,
     state: State,
 }
 
-pub enum OneOfSession {
+pub enum InitializedSession {
     Active(Session<Active>),
     Revoked(Session<Revoked>),
     Expired(Session<Expired>),
@@ -47,38 +49,56 @@ impl<State: SessionState> Entity<Ulid> for Session<State> {
     }
 }
 
-impl SessionState for Initial {}
+impl SessionState for Uninitialized {}
 impl SessionState for Active {}
 impl SessionState for Expired {}
 impl SessionState for Revoked {}
 
-impl Session<Initial> {
-    pub fn new(specs: NewSessionSpecification) -> Session<Active> {
+impl Session<Uninitialized> {
+    pub fn new(
+        NewSessionSpecification {
+            user_id,
+            current_time,
+            expiration_seconds,
+        }: NewSessionSpecification,
+    ) -> Session<Active> {
         Session {
             id: Identifier::new(),
+            user_id,
             state: Active {
-                expires_at: specs.current_time + time::Duration::days(7),
+                expires_at: current_time + time::Duration::seconds(expiration_seconds as i64),
             },
         }
     }
 
-    pub fn restore(specs: RestoreSessionSpecification) -> OneOfSession {
-        match specs.revoked_at {
-            Some(revoked_at) => OneOfSession::from(Session {
-                id: Identifier::from(specs.id),
+    pub fn restore(
+        RestoreSessionSpecification {
+            id,
+            user_id,
+            revoked_at,
+            expires_at,
+            current_time,
+        }: RestoreSessionSpecification,
+    ) -> InitializedSession {
+        match revoked_at {
+            Some(revoked_at) => InitializedSession::from(Session {
+                id: Identifier::from(id.value()),
+                user_id,
                 state: Revoked { revoked_at },
             }),
-            None => match (specs.expires_at - specs.current_time).whole_seconds() > 0 {
-                true => OneOfSession::from(Session {
-                    id: Identifier::from(specs.id),
+            None => match (expires_at - current_time).whole_seconds() > 0 {
+                true => InitializedSession::from(Session {
+                    id: Identifier::from(id.value()),
+                    user_id,
                     state: Active {
-                        expires_at: specs.current_time + time::Duration::days(7),
+                        expires_at: current_time + time::Duration::days(7),
                     },
                 }),
-                false => OneOfSession::from(Session {
-                    id: Identifier::from(specs.id),
+                false => InitializedSession::from(Session {
+                    id: Identifier::from(id.value()),
+                    user_id,
                     state: Expired {
-                        expired_at: specs.expires_at,
+                        expired_at: expires_at,
                     },
                 }),
             },
@@ -87,9 +107,10 @@ impl Session<Initial> {
 }
 
 impl Session<Active> {
-    pub fn revoke(self, current_time: UtcDateTime) -> Session<Revoked> {
+    pub fn revoke(Self { id, user_id, .. }: Self, current_time: UtcDateTime) -> Session<Revoked> {
         Session {
-            id: Identifier::from(self.id.value()),
+            id: Identifier::from(id.value()),
+            user_id,
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -113,20 +134,20 @@ impl Session<Expired> {
     }
 }
 
-impl From<Session<Active>> for OneOfSession {
+impl From<Session<Active>> for InitializedSession {
     fn from(session: Session<Active>) -> Self {
-        OneOfSession::Active(session)
+        InitializedSession::Active(session)
     }
 }
 
-impl From<Session<Expired>> for OneOfSession {
+impl From<Session<Expired>> for InitializedSession {
     fn from(session: Session<Expired>) -> Self {
-        OneOfSession::Expired(session)
+        InitializedSession::Expired(session)
     }
 }
 
-impl From<Session<Revoked>> for OneOfSession {
+impl From<Session<Revoked>> for InitializedSession {
     fn from(session: Session<Revoked>) -> Self {
-        OneOfSession::Revoked(session)
+        InitializedSession::Revoked(session)
     }
 }

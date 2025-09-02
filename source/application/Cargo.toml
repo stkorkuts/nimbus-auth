@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Local crates dependencies
 nimbus_auth_domain = { path = "../domain" }
 nimbus_auth_shared = { path = "../shared" }
+
+# Workspace dependencies
+tracing.workspace = true
+tracing-subscriber.workspace = true
+time.workspace = true
+ulid.workspace = true
+thiserror.workspace = true

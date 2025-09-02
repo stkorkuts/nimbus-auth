@@ -1,4 +1,4 @@
-use crate::value_objects::IdentifierOfType;
+use crate::value_objects::identifier::IdentifierOfType;
 
 pub mod session;
 pub mod user;
