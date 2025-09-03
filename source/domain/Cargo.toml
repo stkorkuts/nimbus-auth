@@ -7,6 +7,10 @@ edition = "2024"
 # Local crates dependencies
 nimbus_auth_shared = { path = "../shared" }
 
+# JWT
+jsonwebtoken = "9.3.1"
+serde = {version = "1.0", features = ["derive"] }
+
 # Workspace dependencies
 tracing.workspace = true
 tracing-subscriber.workspace = true

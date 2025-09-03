@@ -1,4 +1,5 @@
-use time::UtcDateTime;
+use nimbus_auth_shared::config::SessionExpirationSeconds;
+use time::OffsetDateTime;
 use ulid::Ulid;
 
 use crate::{
@@ -11,14 +12,14 @@ use crate::{
 
 pub struct NewSessionSpecification {
     pub user_id: Identifier<Ulid, User>,
-    pub current_time: UtcDateTime,
-    pub expiration_seconds: u32,
+    pub current_time: OffsetDateTime,
+    pub expiration_seconds: SessionExpirationSeconds,
 }
 
 pub struct RestoreSessionSpecification {
     pub id: Identifier<Ulid, Session<Uninitialized>>,
     pub user_id: Identifier<Ulid, User>,
-    pub revoked_at: Option<UtcDateTime>,
-    pub expires_at: UtcDateTime,
-    pub current_time: UtcDateTime,
+    pub revoked_at: Option<OffsetDateTime>,
+    pub expires_at: OffsetDateTime,
+    pub current_time: OffsetDateTime,
 }

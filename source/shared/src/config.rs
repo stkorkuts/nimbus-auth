@@ -7,9 +7,15 @@ pub struct AppConfigBuilder {
     access_token_expiration_seconds: Option<u32>,
 }
 
+#[derive(Clone, Copy)]
+pub struct SessionExpirationSeconds(pub u32);
+
+#[derive(Clone, Copy)]
+pub struct AccessTokenExpirationSeconds(pub u32);
+
 pub struct AppConfig {
-    session_expiration_seconds: u32,
-    access_token_expiration_seconds: u32,
+    session_expiration_seconds: SessionExpirationSeconds,
+    access_token_expiration_seconds: AccessTokenExpirationSeconds,
 }
 
 impl AppConfigBuilder {
@@ -32,22 +38,24 @@ impl AppConfigBuilder {
 
     pub fn build(self) -> AppConfig {
         AppConfig {
-            session_expiration_seconds: self
-                .session_expiration_seconds
-                .unwrap_or(SESSION_EXPIRATION_SECONDS_DEFAULT),
-            access_token_expiration_seconds: self
-                .access_token_expiration_seconds
-                .unwrap_or(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
+            session_expiration_seconds: SessionExpirationSeconds(
+                self.session_expiration_seconds
+                    .unwrap_or(SESSION_EXPIRATION_SECONDS_DEFAULT),
+            ),
+            access_token_expiration_seconds: AccessTokenExpirationSeconds(
+                self.access_token_expiration_seconds
+                    .unwrap_or(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
+            ),
         }
     }
 }
 
 impl AppConfig {
-    fn session_expiration_seconds(&self) -> u32 {
+    fn session_expiration_seconds(&self) -> SessionExpirationSeconds {
         self.session_expiration_seconds
     }
 
-    fn access_token_expiration_seconds(&self) -> u32 {
+    fn access_token_expiration_seconds(&self) -> AccessTokenExpirationSeconds {
         self.access_token_expiration_seconds
     }
 }

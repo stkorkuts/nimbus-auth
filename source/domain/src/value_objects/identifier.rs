@@ -14,6 +14,15 @@ pub struct Identifier<TValue, TEntity: Entity<TValue>> {
     value: TValue,
 }
 
+impl<TValue: Clone, TEntity: Entity<TValue>> Clone for Identifier<TValue, TEntity> {
+    fn clone(&self) -> Self {
+        Self {
+            _marker: self._marker.clone(),
+            value: self.value.clone(),
+        }
+    }
+}
+
 impl<TEntity: Entity<Ulid>> IdentifierOfType<Ulid> for Identifier<Ulid, TEntity> {
     fn new() -> Self {
         Self {

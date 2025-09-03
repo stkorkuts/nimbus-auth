@@ -1,7 +1,8 @@
 pub mod errors;
 pub mod specifications;
 
-use time::UtcDateTime;
+use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
+use time::OffsetDateTime;
 use ulid::Ulid;
 
 use crate::{
@@ -10,7 +11,10 @@ use crate::{
         session::specifications::{NewSessionSpecification, RestoreSessionSpecification},
         user::User,
     },
-    value_objects::identifier::{Identifier, IdentifierOfType},
+    value_objects::{
+        access_token::AccessToken,
+        identifier::{Identifier, IdentifierOfType},
+    },
 };
 
 pub trait SessionState {}
@@ -18,15 +22,15 @@ pub trait SessionState {}
 pub struct Uninitialized {}
 
 pub struct Active {
-    expires_at: UtcDateTime,
+    expires_at: OffsetDateTime,
 }
 
 pub struct Expired {
-    expired_at: UtcDateTime,
+    expired_at: OffsetDateTime,
 }
 
 pub struct Revoked {
-    revoked_at: UtcDateTime,
+    revoked_at: OffsetDateTime,
 }
 
 pub struct Session<State: SessionState> {
@@ -59,7 +63,7 @@ impl Session<Uninitialized> {
         NewSessionSpecification {
             user_id,
             current_time,
-            expiration_seconds,
+            expiration_seconds: SessionExpirationSeconds(expiration_seconds),
         }: NewSessionSpecification,
     ) -> Session<Active> {
         Session {
@@ -107,7 +111,10 @@ impl Session<Uninitialized> {
 }
 
 impl Session<Active> {
-    pub fn revoke(Self { id, user_id, .. }: Self, current_time: UtcDateTime) -> Session<Revoked> {
+    pub fn revoke(
+        Self { id, user_id, .. }: Self,
+        current_time: OffsetDateTime,
+    ) -> Session<Revoked> {
         Session {
             id: Identifier::from(id.value()),
             user_id,
@@ -117,19 +124,48 @@ impl Session<Active> {
         }
     }
 
-    pub fn expires_at(&self) -> UtcDateTime {
+    pub fn refresh(
+        Self { id, user_id, .. }: Self,
+        current_time: OffsetDateTime,
+        expiration_seconds: SessionExpirationSeconds,
+    ) -> (Session<Revoked>, Session<Active>) {
+        (
+            Session {
+                id: Identifier::from(id.value()),
+                user_id: user_id.clone(),
+                state: Revoked {
+                    revoked_at: current_time,
+                },
+            },
+            Session::<Uninitialized>::new(NewSessionSpecification {
+                user_id: user_id.clone(),
+                current_time,
+                expiration_seconds,
+            }),
+        )
+    }
+
+    pub fn generate_access_token(
+        &self,
+        current_time: OffsetDateTime,
+        expiration_seconds: AccessTokenExpirationSeconds,
+    ) -> AccessToken {
+        AccessToken::new(self.user_id.clone(), current_time, expiration_seconds)
+    }
+
+    pub fn expires_at(&self) -> OffsetDateTime {
         self.state.expires_at
     }
 }
 
 impl Session<Revoked> {
-    pub fn revoked_at(&self) -> UtcDateTime {
+    pub fn revoked_at(&self) -> OffsetDateTime {
         self.state.revoked_at
     }
 }
 
 impl Session<Expired> {
-    pub fn expired_at(&self) -> UtcDateTime {
+    pub fn expired_at(&self) -> OffsetDateTime {
         self.state.expired_at
     }
 }
