@@ -15,6 +15,12 @@ time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
 
+# Runtime
+tokio = { version = "1.45.1", features = ["full"] }
+
+# Api
+axum = "0.8.4"
+
 # Protobuf
 prost = "0.12"
 

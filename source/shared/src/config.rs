@@ -3,6 +3,7 @@ use crate::constants::{
 };
 
 pub struct AppConfigBuilder {
+    server_addr: String,
     session_expiration_seconds: Option<u32>,
     access_token_expiration_seconds: Option<u32>,
 }
@@ -13,14 +14,21 @@ pub struct SessionExpirationSeconds(pub u32);
 #[derive(Clone, Copy)]
 pub struct AccessTokenExpirationSeconds(pub u32);
 
+#[derive(Clone)]
 pub struct AppConfig {
+    server_addr: String,
     session_expiration_seconds: SessionExpirationSeconds,
     access_token_expiration_seconds: AccessTokenExpirationSeconds,
 }
 
+pub struct AppConfigRequiredOptions {
+    pub server_addr: String,
+}
+
 impl AppConfigBuilder {
-    pub fn new() -> Self {
+    pub fn new(AppConfigRequiredOptions { server_addr }: AppConfigRequiredOptions) -> Self {
         Self {
+            server_addr,
             session_expiration_seconds: None,
             access_token_expiration_seconds: None,
         }
@@ -38,6 +46,7 @@ impl AppConfigBuilder {
 
     pub fn build(self) -> AppConfig {
         AppConfig {
+            server_addr: self.server_addr,
             session_expiration_seconds: SessionExpirationSeconds(
                 self.session_expiration_seconds
                     .unwrap_or(SESSION_EXPIRATION_SECONDS_DEFAULT),

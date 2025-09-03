@@ -1,9 +1,11 @@
 use std::{env, error::Error};
 
+use nimbus_auth_infrastructure::api::WebApi;
 use nimbus_auth_shared::{
-    config::{AppConfig, AppConfigBuilder},
+    config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
-        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME,
+        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, SERVER_ADDR_ENV_VAR_NAME,
+        SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME,
     },
 };
 use tracing::subscriber;
@@ -13,14 +15,19 @@ use tracing_subscriber::FmtSubscriber;
 async fn main() -> Result<(), Box<dyn Error>> {
     let config = get_config_from_env()?;
 
-    configure_tracing(config)?;
+    configure_tracing(&config)?;
+
+    WebApi::run(&config).await?;
 
     Ok(())
 }
 
 fn get_config_from_env() -> Result<AppConfig, Box<dyn Error>> {
     dotenvy::dotenv()?;
-    let mut config_builder = AppConfigBuilder::new();
+
+    let mut config_builder = AppConfigBuilder::new(AppConfigRequiredOptions {
+        server_addr: env::var(SERVER_ADDR_ENV_VAR_NAME)?,
+    });
 
     if let Ok(value) = env::var(SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME) {
         let parsed = value.parse()?;
@@ -35,7 +42,7 @@ fn get_config_from_env() -> Result<AppConfig, Box<dyn Error>> {
     Ok(config_builder.build())
 }
 
-fn configure_tracing(_: AppConfig) -> Result<(), Box<dyn Error>> {
+fn configure_tracing(_: &AppConfig) -> Result<(), Box<dyn Error>> {
     let subscriber = FmtSubscriber::builder().finish();
 
     subscriber::set_global_default(subscriber)?;
