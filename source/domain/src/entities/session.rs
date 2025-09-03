@@ -1,6 +1,3 @@
-pub mod errors;
-pub mod specifications;
-
 use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 use time::OffsetDateTime;
 use ulid::Ulid;
@@ -16,6 +13,9 @@ use crate::{
         identifier::{Identifier, IdentifierOfType},
     },
 };
+
+pub mod errors;
+pub mod specifications;
 
 pub trait SessionState {}
 

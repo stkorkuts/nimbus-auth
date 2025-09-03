@@ -1,5 +1,3 @@
-pub mod errors;
-
 use jsonwebtoken::{EncodingKey, Header, encode};
 use nimbus_auth_shared::{
     config::AccessTokenExpirationSeconds,
@@ -13,6 +11,8 @@ use crate::{
     entities::user::User,
     value_objects::{access_token::errors::SignAccessTokenError, identifier::Identifier},
 };
+
+pub mod errors;
 
 pub struct AccessToken {
     user_id: Identifier<Ulid, User>,

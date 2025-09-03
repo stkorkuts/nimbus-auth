@@ -1,5 +1,6 @@
 use std::{env, error::Error};
 
+use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_infrastructure::api::WebApi;
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
@@ -17,7 +18,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     configure_tracing(&config)?;
 
-    WebApi::run(&config).await?;
+    let use_cases = build_use_cases(&config)?;
+
+    WebApi::run(&config, use_cases).await?;
 
     Ok(())
 }
@@ -48,4 +51,8 @@ fn configure_tracing(_: &AppConfig) -> Result<(), Box<dyn Error>> {
     subscriber::set_global_default(subscriber)?;
 
     Ok(())
+}
+
+fn build_use_cases(app_config: &AppConfig) -> Result<UseCases, Box<dyn Error>> {
+    todo!();
 }

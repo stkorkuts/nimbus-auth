@@ -1,17 +1,18 @@
-pub mod errors;
-
 use axum::Router;
+use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_shared::config::AppConfig;
 use tokio::net::TcpListener;
 
 use crate::api::errors::WebApiError;
 
+pub mod errors;
+
 pub struct WebApi {}
 
 impl WebApi {
-    pub async fn run(_config: &AppConfig) -> Result<(), WebApiError> {
-        let app = Router::new();
-        let listener = TcpListener::bind("")
+    pub async fn run(config: &AppConfig, use_cases: UseCases) -> Result<(), WebApiError> {
+        let app = Router::new().with_state(use_cases);
+        let listener = TcpListener::bind(config.server_addr())
             .await
             .map_err(WebApiError::InvalidListenerAddr)?;
         axum::serve(listener, app)

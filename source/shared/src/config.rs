@@ -60,11 +60,15 @@ impl AppConfigBuilder {
 }
 
 impl AppConfig {
-    fn session_expiration_seconds(&self) -> SessionExpirationSeconds {
+    pub fn server_addr(&self) -> String {
+        self.server_addr.clone()
+    }
+
+    pub fn session_expiration_seconds(&self) -> SessionExpirationSeconds {
         self.session_expiration_seconds
     }
 
-    fn access_token_expiration_seconds(&self) -> AccessTokenExpirationSeconds {
+    pub fn access_token_expiration_seconds(&self) -> AccessTokenExpirationSeconds {
         self.access_token_expiration_seconds
     }
 }

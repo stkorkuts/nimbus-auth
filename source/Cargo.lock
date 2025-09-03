@@ -570,6 +570,7 @@ name = "nimbus_auth_infrastructure"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "nimbus_auth_application",
  "nimbus_auth_domain",
  "nimbus_auth_shared",
  "prost",
