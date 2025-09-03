@@ -5,7 +5,8 @@ use nimbus_auth_infrastructure::api::WebApi;
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
-        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, SERVER_ADDR_ENV_VAR_NAME,
+        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, PRIVATE_KEY_PATH_ENV_VAR_NAME,
+        PUBLIC_KEY_PATH_ENV_VAR_NAME, SERVER_ADDR_ENV_VAR_NAME,
         SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME,
     },
 };
@@ -30,6 +31,8 @@ fn get_config_from_env() -> Result<AppConfig, Box<dyn Error>> {
 
     let mut config_builder = AppConfigBuilder::new(AppConfigRequiredOptions {
         server_addr: env::var(SERVER_ADDR_ENV_VAR_NAME)?,
+        public_key_path: env::var(PUBLIC_KEY_PATH_ENV_VAR_NAME)?.parse()?,
+        private_key_path: env::var(PRIVATE_KEY_PATH_ENV_VAR_NAME)?.parse()?,
     });
 
     if let Ok(value) = env::var(SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME) {
