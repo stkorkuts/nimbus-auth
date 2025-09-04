@@ -1,13 +1,14 @@
 use std::error::Error;
 
+use nimbus_auth_shared::errors::ErrorBoxed;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RotateKeyPairsError {
     #[error("keypairs repository error")]
-    KeyPairsRepositoryError(#[source] Box<dyn Error>),
+    KeyPairsRepositoryError(#[source] ErrorBoxed),
     #[error("transaction error")]
-    TransactionError(#[source] Box<dyn Error>),
+    TransactionError(#[source] ErrorBoxed),
     #[error("time service error")]
-    TimeServiceError(#[source] Box<dyn Error>),
+    TimeServiceError(#[source] ErrorBoxed),
 }

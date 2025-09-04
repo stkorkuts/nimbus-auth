@@ -1,20 +1,20 @@
-
 use nimbus_auth_application::services::{
     transactions::{Transaction, TransactionLike, Transactional},
     user_repository::UserRepository,
 };
-use nimbus_auth_shared::futures::pinned;
+use nimbus_auth_domain::entities::user::User;
+use nimbus_auth_shared::{errors::ErrorBoxed, futures::PinnedFuture};
 
 pub struct PostgreSQLUserRepository {}
 
 pub struct PostgreSQLUserRepositoryTransaction {}
 
 impl TransactionLike for PostgreSQLUserRepositoryTransaction {
-    fn commit(&mut self) -> nimbus_auth_shared::futures::PinnedFuture<()> {
+    fn commit(&mut self) -> PinnedFuture<(), ErrorBoxed> {
         todo!()
     }
 
-    fn rollback(&mut self) -> nimbus_auth_shared::futures::PinnedFuture<()> {
+    fn rollback(&mut self) -> PinnedFuture<(), ErrorBoxed> {
         todo!()
     }
 }
@@ -22,14 +22,8 @@ impl TransactionLike for PostgreSQLUserRepositoryTransaction {
 impl Transactional for PostgreSQLUserRepository {
     type TransactionType = Transaction;
 
-    fn start_transaction(
-        &self,
-    ) -> nimbus_auth_shared::futures::PinnedFuture<Self::TransactionType> {
-        pinned(async {
-            Ok(Transaction::new(Box::new(
-                PostgreSQLUserRepositoryTransaction {},
-            )))
-        })
+    fn start_transaction(&self) -> PinnedFuture<Self::TransactionType, ErrorBoxed> {
+        todo!()
     }
 }
 
@@ -38,8 +32,7 @@ impl UserRepository for PostgreSQLUserRepository {
         &self,
         id: &ulid::Ulid,
         transaction: Option<Self::TransactionType>,
-    ) -> nimbus_auth_shared::futures::PinnedFuture<Option<nimbus_auth_domain::entities::user::User>>
-    {
+    ) -> PinnedFuture<Option<User>, ErrorBoxed> {
         todo!()
     }
 
@@ -47,8 +40,7 @@ impl UserRepository for PostgreSQLUserRepository {
         &self,
         username: &str,
         transaction: Option<Self::TransactionType>,
-    ) -> nimbus_auth_shared::futures::PinnedFuture<Option<nimbus_auth_domain::entities::user::User>>
-    {
+    ) -> PinnedFuture<Option<User>, ErrorBoxed> {
         todo!()
     }
 
@@ -58,16 +50,15 @@ impl UserRepository for PostgreSQLUserRepository {
             nimbus_auth_domain::entities::session::Active,
         >,
         transaction: Option<Self::TransactionType>,
-    ) -> nimbus_auth_shared::futures::PinnedFuture<Option<nimbus_auth_domain::entities::user::User>>
-    {
+    ) -> PinnedFuture<Option<User>, ErrorBoxed> {
         todo!()
     }
 
     fn save(
         &self,
-        user: &nimbus_auth_domain::entities::user::User,
+        user: &User,
         transaction: Option<Self::TransactionType>,
-    ) -> nimbus_auth_shared::futures::PinnedFuture<()> {
+    ) -> PinnedFuture<(), ErrorBoxed> {
         todo!()
     }
 }
