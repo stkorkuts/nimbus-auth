@@ -2,10 +2,10 @@ use nimbus_auth_domain::entities::keypair::{Active, InitializedKeyPair, KeyPair}
 use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
-use crate::services::transactions::{TransactionWrapper, Transactional};
+use crate::services::transactions::{Transaction, Transactional};
 
 pub trait KeyPairRepository:
-    Transactional<TransactionType = TransactionWrapper> + Send + Sync
+    Transactional<TransactionType = Transaction> + Send + Sync
 {
     fn get_by_id(
         &self,

@@ -1,28 +1,28 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use nimbus_auth_shared::futures::{PinnedFuture, pinned};
 use tokio::sync::Mutex;
 
 pub trait Transactional {
-    type TransactionType: Transaction;
+    type TransactionType: TransactionLike;
     fn start_transaction(&self) -> PinnedFuture<Self::TransactionType>;
 }
 
-pub trait Transaction: Send + Sync {
+pub trait TransactionLike: Send + Sync {
     fn commit(&mut self) -> PinnedFuture<()>;
     fn rollback(&mut self) -> PinnedFuture<()>;
 }
 
 #[derive(Clone)]
-pub struct TransactionWrapper(Arc<Mutex<dyn Transaction>>);
+pub struct Transaction(Arc<Mutex<Box<dyn TransactionLike>>>);
 
-impl TransactionWrapper {
-    pub fn new(transaction: Arc<Mutex<dyn Transaction>>) -> Self {
-        Self(transaction)
+impl Transaction {
+    pub fn new(transaction: Box<dyn TransactionLike>) -> Self {
+        Self(Arc::new(Mutex::new(transaction)))
     }
 }
 
-impl Transaction for TransactionWrapper {
+impl TransactionLike for Transaction {
     fn commit(&mut self) -> PinnedFuture<()> {
         let inner = self.0.clone();
         pinned(async move { inner.lock().await.commit().await })

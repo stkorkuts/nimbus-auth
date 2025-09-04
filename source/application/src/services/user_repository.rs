@@ -5,11 +5,9 @@ use nimbus_auth_domain::entities::{
 use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
-use crate::services::transactions::{TransactionWrapper, Transactional};
+use crate::services::transactions::{Transaction, Transactional};
 
-pub trait UserRepository:
-    Transactional<TransactionType = TransactionWrapper> + Send + Sync
-{
+pub trait UserRepository: Transactional<TransactionType = Transaction> + Send + Sync {
     fn get_by_id(
         &self,
         id: &Ulid,

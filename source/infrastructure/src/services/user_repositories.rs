@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::services::{
-    transactions::{Transaction, TransactionWrapper, Transactional},
+    transactions::{Transaction, TransactionLike, Transactional},
     user_repository::UserRepository,
 };
 use nimbus_auth_shared::futures::pinned;
-use tokio::sync::Mutex;
 
 pub struct PostgreSQLUserRepository {}
 
 pub struct PostgreSQLUserRepositoryTransaction {}
 
-impl Transaction for PostgreSQLUserRepositoryTransaction {
+impl TransactionLike for PostgreSQLUserRepositoryTransaction {
     fn commit(&mut self) -> nimbus_auth_shared::futures::PinnedFuture<()> {
         todo!()
     }
@@ -22,15 +21,15 @@ impl Transaction for PostgreSQLUserRepositoryTransaction {
 }
 
 impl Transactional for PostgreSQLUserRepository {
-    type TransactionType = TransactionWrapper;
+    type TransactionType = Transaction;
 
     fn start_transaction(
         &self,
     ) -> nimbus_auth_shared::futures::PinnedFuture<Self::TransactionType> {
         pinned(async {
-            Ok(TransactionWrapper::new(Arc::new(Mutex::new(
+            Ok(Transaction::new(Box::new(
                 PostgreSQLUserRepositoryTransaction {},
-            ))))
+            )))
         })
     }
 }

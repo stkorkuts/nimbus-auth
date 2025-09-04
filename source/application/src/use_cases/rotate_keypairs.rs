@@ -7,7 +7,8 @@ use nimbus_auth_shared::config::AccessTokenExpirationSeconds;
 
 use crate::{
     services::{
-        keypair_repository::KeyPairRepository, time_service::TimeService, transactions::Transaction,
+        keypair_repository::KeyPairRepository, time_service::TimeService,
+        transactions::TransactionLike,
     },
     use_cases::{RotateKeyPairsError, RotateKeyPairsRequest, RotateKeyPairsResponse},
 };

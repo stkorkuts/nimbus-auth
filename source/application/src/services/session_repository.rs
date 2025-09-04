@@ -5,11 +5,9 @@ use nimbus_auth_shared::futures::PinnedFuture;
 use tokio::sync::Mutex;
 use ulid::Ulid;
 
-use crate::services::transactions::{TransactionWrapper, Transactional};
+use crate::services::transactions::{Transaction, Transactional};
 
-pub trait SessionRepository:
-    Transactional<TransactionType = TransactionWrapper> + Send + Sync
-{
+pub trait SessionRepository: Transactional<TransactionType = Transaction> + Send + Sync {
     fn get_by_id(
         &self,
         id: &Ulid,
