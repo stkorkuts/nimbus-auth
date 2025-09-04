@@ -1,12 +1,12 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use nimbus_auth_shared::config::{
-    AccessTokenExpirationSeconds, AppConfig, SessionExpirationSeconds,
+    AccessTokenExpirationSeconds, SessionExpirationSeconds,
 };
 
 use crate::{
     services::{
-        keypair_repository::{self, KeyPairRepository},
+        keypair_repository::KeyPairRepository,
         session_repository::SessionRepository,
         user_repository::UserRepository,
     },

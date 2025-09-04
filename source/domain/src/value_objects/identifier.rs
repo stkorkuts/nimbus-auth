@@ -17,7 +17,7 @@ pub struct Identifier<TValue, TEntity: Entity<TValue>> {
 impl<TValue: Clone, TEntity: Entity<TValue>> Clone for Identifier<TValue, TEntity> {
     fn clone(&self) -> Self {
         Self {
-            _marker: self._marker.clone(),
+            _marker: self._marker,
             value: self.value.clone(),
         }
     }

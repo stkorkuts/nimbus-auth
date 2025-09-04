@@ -5,10 +5,7 @@ use ulid::Ulid;
 use crate::{
     entities::{
         Entity,
-        keypair::{
-            errors::KeyPairError,
-            specifications::{NewKeyPairSpecification, RestoreKeyPairSpecification},
-        },
+        keypair::specifications::{NewKeyPairSpecification, RestoreKeyPairSpecification},
     },
     value_objects::{
         identifier::{Identifier, IdentifierOfType},

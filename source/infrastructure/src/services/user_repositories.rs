@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use nimbus_auth_application::services::{
     transactions::{Transaction, TransactionLike, Transactional},

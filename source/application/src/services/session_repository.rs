@@ -1,8 +1,6 @@
-use std::sync::Arc;
 
 use nimbus_auth_domain::entities::session::InitializedSession;
 use nimbus_auth_shared::futures::PinnedFuture;
-use tokio::sync::Mutex;
 use ulid::Ulid;
 
 use crate::services::transactions::{Transaction, Transactional};

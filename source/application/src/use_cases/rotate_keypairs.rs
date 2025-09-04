@@ -72,7 +72,7 @@ pub async fn handle_rotate_keypairs(
     })
     .await;
 
-    return match result {
+    match result {
         Ok(()) => {
             transaction
                 .commit()
@@ -89,5 +89,5 @@ pub async fn handle_rotate_keypairs(
 
             Err(err)
         }
-    };
+    }
 }
