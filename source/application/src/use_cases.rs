@@ -5,7 +5,11 @@ use nimbus_auth_shared::config::{
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    services::{session_repository::SessionRepository, user_repository::UserRepository},
+    services::{
+        keypair_repository::{self, KeyPairRepository},
+        session_repository::SessionRepository,
+        user_repository::UserRepository,
+    },
     use_cases::{
         get_public_key::handle_get_public_key,
         refresh::handle_refresh,
@@ -38,16 +42,15 @@ pub struct UseCases {
 
 #[derive(Clone)]
 struct UseCasesConfig {
-    pub public_key_path: PathBuf,
-    pub private_key_path: PathBuf,
-    pub session_expiration_seconds: SessionExpirationSeconds,
-    pub access_token_expiration_seconds: AccessTokenExpirationSeconds,
+    session_expiration_seconds: SessionExpirationSeconds,
+    access_token_expiration_seconds: AccessTokenExpirationSeconds,
 }
 
 #[derive(Clone)]
 struct UseCasesServices {
-    pub session_repository: Arc<dyn SessionRepository>,
-    pub user_repository: Arc<dyn UserRepository>,
+    session_repository: Arc<dyn SessionRepository>,
+    user_repository: Arc<dyn UserRepository>,
+    keypair_repository: Arc<dyn KeyPairRepository>,
 }
 
 impl UseCases {
@@ -55,17 +58,17 @@ impl UseCases {
         app_config: &AppConfig,
         session_repository: Arc<dyn SessionRepository>,
         user_repository: Arc<dyn UserRepository>,
+        keypair_repository: Arc<dyn KeyPairRepository>,
     ) -> UseCases {
         Self {
             config: UseCasesConfig {
-                public_key_path: app_config.public_key_path(),
-                private_key_path: app_config.private_key_path(),
                 session_expiration_seconds: app_config.session_expiration_seconds(),
                 access_token_expiration_seconds: app_config.access_token_expiration_seconds(),
             },
             services: UseCasesServices {
                 session_repository,
                 user_repository,
+                keypair_repository,
             },
         }
     }
@@ -75,7 +78,7 @@ impl UseCases {
             request,
             self.services.user_repository.clone(),
             self.services.session_repository.clone(),
-            &self.config.private_key_path,
+            self.services.keypair_repository.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )
@@ -87,7 +90,7 @@ impl UseCases {
             request,
             self.services.user_repository.clone(),
             self.services.session_repository.clone(),
-            &self.config.private_key_path,
+            self.services.keypair_repository.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )
@@ -99,7 +102,7 @@ impl UseCases {
             request,
             self.services.user_repository.clone(),
             self.services.session_repository.clone(),
-            &self.config.private_key_path,
+            self.services.keypair_repository.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )
@@ -110,6 +113,10 @@ impl UseCases {
         &self,
         request: GetPublicKeyRequest,
     ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
-        handle_get_public_key(request, &self.config.public_key_path).await
+        handle_get_public_key(request, self.services.keypair_repository.clone()).await
+    }
+
+    pub async fn rotate_keys(&self) {
+        todo!()
     }
 }

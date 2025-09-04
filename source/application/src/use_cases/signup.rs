@@ -5,7 +5,11 @@ use nimbus_auth_shared::config::{
 };
 
 use crate::{
-    services::{session_repository::SessionRepository, user_repository::UserRepository},
+    services::{
+        keypair_repository::{self, KeyPairRepository},
+        session_repository::SessionRepository,
+        user_repository::UserRepository,
+    },
     use_cases::{SignUpRequest, SignUpResponse, signup::errors::SignUpError},
 };
 
@@ -16,7 +20,7 @@ pub async fn handle_signup(
     SignUpRequest {}: SignUpRequest,
     user_repository: Arc<dyn UserRepository>,
     session_repository: Arc<dyn SessionRepository>,
-    private_key_path: &PathBuf,
+    keypair_repository: Arc<dyn KeyPairRepository>,
     session_exp_seconds: SessionExpirationSeconds,
     access_token_exp_seconds: AccessTokenExpirationSeconds,
 ) -> Result<SignUpResponse, SignUpError> {

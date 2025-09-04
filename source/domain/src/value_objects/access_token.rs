@@ -8,7 +8,11 @@ use time::OffsetDateTime;
 use ulid::Ulid;
 
 use crate::{
-    entities::user::User,
+    entities::{
+        Entity,
+        keypair::{Active, KeyPair},
+        user::User,
+    },
     value_objects::{access_token::errors::SignAccessTokenError, identifier::Identifier},
 };
 
@@ -25,6 +29,7 @@ struct Claims {
     exp: usize,
     iss: String,
     sub: String,
+    kid: String,
 }
 
 impl AccessToken {
@@ -47,7 +52,7 @@ impl AccessToken {
         &self.expires_at
     }
 
-    pub fn sign(&self, rsa_pem_private_key: &[u8]) -> Result<String, SignAccessTokenError> {
+    pub fn sign(&self, key_pair: &KeyPair<Active>) -> Result<String, SignAccessTokenError> {
         let header = Header::new(jsonwebtoken::Algorithm::RS256);
 
         let expiration_timestamp = self.expires_at.unix_timestamp() as usize;
@@ -56,9 +61,10 @@ impl AccessToken {
             exp: expiration_timestamp,
             iss: ACCESS_TOKEN_ISSUER.to_string(),
             sub: self.user_id.to_string(),
+            kid: key_pair.id().to_string(),
         };
 
-        let key = EncodingKey::from_rsa_pem(rsa_pem_private_key)
+        let key = EncodingKey::from_rsa_pem(key_pair.value().private())
             .map_err(SignAccessTokenError::InvalidPrivateKeyFormat)?;
 
         let token = encode(&header, &claims, &key).map_err(SignAccessTokenError::EncodingError)?;

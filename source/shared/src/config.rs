@@ -12,8 +12,7 @@ pub struct AccessTokenExpirationSeconds(pub u32);
 
 pub struct AppConfigBuilder {
     server_addr: String,
-    public_key_path: PathBuf,
-    private_key_path: PathBuf,
+    keypairs_store_path: PathBuf,
     session_expiration_seconds: Option<u32>,
     access_token_expiration_seconds: Option<u32>,
 }
@@ -21,30 +20,26 @@ pub struct AppConfigBuilder {
 #[derive(Clone)]
 pub struct AppConfig {
     server_addr: String,
-    public_key_path: PathBuf,
-    private_key_path: PathBuf,
+    keypairs_store_path: PathBuf,
     session_expiration_seconds: SessionExpirationSeconds,
     access_token_expiration_seconds: AccessTokenExpirationSeconds,
 }
 
 pub struct AppConfigRequiredOptions {
     pub server_addr: String,
-    pub public_key_path: PathBuf,
-    pub private_key_path: PathBuf,
+    pub keypairs_store_path: PathBuf,
 }
 
 impl AppConfigBuilder {
     pub fn new(
         AppConfigRequiredOptions {
             server_addr,
-            public_key_path,
-            private_key_path,
+            keypairs_store_path,
         }: AppConfigRequiredOptions,
     ) -> Self {
         Self {
             server_addr,
-            public_key_path,
-            private_key_path,
+            keypairs_store_path,
             session_expiration_seconds: None,
             access_token_expiration_seconds: None,
         }
@@ -63,8 +58,7 @@ impl AppConfigBuilder {
     pub fn build(self) -> AppConfig {
         AppConfig {
             server_addr: self.server_addr,
-            private_key_path: self.private_key_path,
-            public_key_path: self.public_key_path,
+            keypairs_store_path: self.keypairs_store_path,
             session_expiration_seconds: SessionExpirationSeconds(
                 self.session_expiration_seconds
                     .unwrap_or(SESSION_EXPIRATION_SECONDS_DEFAULT),
@@ -82,12 +76,8 @@ impl AppConfig {
         self.server_addr.clone()
     }
 
-    pub fn public_key_path(&self) -> PathBuf {
-        self.public_key_path.clone()
-    }
-
-    pub fn private_key_path(&self) -> PathBuf {
-        self.private_key_path.clone()
+    pub fn keypairs_store_path(&self) -> PathBuf {
+        self.keypairs_store_path.clone()
     }
 
     pub fn session_expiration_seconds(&self) -> SessionExpirationSeconds {

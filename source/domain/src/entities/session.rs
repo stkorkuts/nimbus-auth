@@ -94,9 +94,7 @@ impl Session<Uninitialized> {
                 true => InitializedSession::from(Session {
                     id: Identifier::from(id.value()),
                     user_id,
-                    state: Active {
-                        expires_at: current_time + time::Duration::days(7),
-                    },
+                    state: Active { expires_at },
                 }),
                 false => InitializedSession::from(Session {
                     id: Identifier::from(id.value()),

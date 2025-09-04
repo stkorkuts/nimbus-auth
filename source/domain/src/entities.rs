@@ -1,5 +1,6 @@
 use crate::value_objects::identifier::IdentifierOfType;
 
+pub mod keypair;
 pub mod session;
 pub mod user;
 
