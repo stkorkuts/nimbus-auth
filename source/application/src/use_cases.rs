@@ -116,7 +116,11 @@ impl UseCases {
         handle_get_public_key(request, self.services.keypair_repository.clone()).await
     }
 
-    pub async fn rotate_keys(&self) {
+    pub async fn rotate_keypairs(&self) {
+        todo!()
+    }
+
+    pub async fn revoke_keypair(&self) {
         todo!()
     }
 }

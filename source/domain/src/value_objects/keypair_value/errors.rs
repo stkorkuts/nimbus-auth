@@ -6,4 +6,6 @@ pub enum KeyPairValueError {
     InvalidPrivateKeyFormat,
     #[error("invalid public key format")]
     InvalidPublicKeyFormat,
+    #[error("keys do not match each other")]
+    KeysDoNotMatch,
 }
