@@ -19,12 +19,6 @@ pub trait TransactionLike: Send + Sync {
 #[derive(Clone)]
 pub struct Transaction(Arc<Mutex<Box<dyn TransactionLike>>>);
 
-impl Transaction {
-    pub fn new(transaction: Box<dyn TransactionLike>) -> Self {
-        Self(Arc::new(Mutex::new(transaction)))
-    }
-}
-
 impl TransactionLike for Transaction {
     fn commit(&mut self) -> PinnedFuture<(), ErrorBoxed> {
         let inner = self.0.clone();
@@ -37,31 +31,30 @@ impl TransactionLike for Transaction {
     }
 }
 
-pub trait TransactionExt {
-    fn run<T: Send + Sync + 'static>(
-        &mut self,
-        f: Box<dyn FnOnce(Transaction) -> PinnedFuture<T, ErrorBoxed> + Send + Sync>,
-    ) -> PinnedFuture<T, ErrorBoxed>;
-}
+impl Transaction {
+    pub fn new(transaction: Box<dyn TransactionLike>) -> Self {
+        Self(Arc::new(Mutex::new(transaction)))
+    }
 
-impl TransactionExt for Transaction {
-    fn run<T: Send + Sync + 'static>(
+    pub async fn run<
+        T: Send + 'static,
+        F: FnOnce(Transaction) -> Fut,
+        Fut: Future<Output = Result<T, ErrorBoxed>> + Send + 'static,
+    >(
         &mut self,
-        f: Box<dyn FnOnce(Self) -> PinnedFuture<T, ErrorBoxed> + Send + Sync>,
-    ) -> PinnedFuture<T, ErrorBoxed> {
-        let mut transaction = self.clone();
-        pin_error_boxed(async move {
-            let result = f(transaction.clone()).await;
-            match result {
-                Ok(value) => {
-                    transaction.commit().await?;
-                    Ok(value)
-                }
-                Err(err) => {
-                    transaction.rollback().await?;
-                    Err(err)
-                }
+        f: F,
+    ) -> Result<T, ErrorBoxed> {
+        let mut tx = self.clone();
+        let result = f(tx.clone()).await;
+        match result {
+            Ok(val) => {
+                tx.commit().await?;
+                Ok(val)
             }
-        })
+            Err(err) => {
+                tx.rollback().await?;
+                Err(err)
+            }
+        }
     }
 }
