@@ -1,18 +1,16 @@
-use nimbus_auth_shared::config::{
-    AccessTokenExpirationSeconds, AppConfig, SessionExpirationSeconds,
-};
+use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     services::{
-        keypair_repository::{self, KeyPairRepository},
-        session_repository::SessionRepository,
-        user_repository::UserRepository,
+        keypair_repository::KeyPairRepository, session_repository::SessionRepository,
+        time_service::TimeService, user_repository::UserRepository,
     },
     use_cases::{
         get_public_key::handle_get_public_key,
         refresh::handle_refresh,
+        rotate_keypairs::handle_rotate_keypairs,
         signin::{errors::SignInError, handle_signin},
         signup::{errors::SignUpError, handle_signup},
     },
@@ -34,6 +32,10 @@ mod get_public_key;
 pub use get_public_key::errors::*;
 pub use get_public_key::schema::*;
 
+mod rotate_keypairs;
+pub use rotate_keypairs::errors::*;
+pub use rotate_keypairs::schema::*;
+
 #[derive(Clone)]
 pub struct UseCases {
     config: UseCasesConfig,
@@ -41,36 +43,22 @@ pub struct UseCases {
 }
 
 #[derive(Clone)]
-struct UseCasesConfig {
-    session_expiration_seconds: SessionExpirationSeconds,
-    access_token_expiration_seconds: AccessTokenExpirationSeconds,
+pub struct UseCasesConfig {
+    pub session_expiration_seconds: SessionExpirationSeconds,
+    pub access_token_expiration_seconds: AccessTokenExpirationSeconds,
 }
 
 #[derive(Clone)]
-struct UseCasesServices {
-    session_repository: Arc<dyn SessionRepository>,
-    user_repository: Arc<dyn UserRepository>,
-    keypair_repository: Arc<dyn KeyPairRepository>,
+pub struct UseCasesServices {
+    pub session_repository: Arc<dyn SessionRepository>,
+    pub user_repository: Arc<dyn UserRepository>,
+    pub keypair_repository: Arc<dyn KeyPairRepository>,
+    pub time_service: Arc<dyn TimeService>,
 }
 
 impl UseCases {
-    pub fn new(
-        app_config: &AppConfig,
-        session_repository: Arc<dyn SessionRepository>,
-        user_repository: Arc<dyn UserRepository>,
-        keypair_repository: Arc<dyn KeyPairRepository>,
-    ) -> UseCases {
-        Self {
-            config: UseCasesConfig {
-                session_expiration_seconds: app_config.session_expiration_seconds(),
-                access_token_expiration_seconds: app_config.access_token_expiration_seconds(),
-            },
-            services: UseCasesServices {
-                session_repository,
-                user_repository,
-                keypair_repository,
-            },
-        }
+    pub fn new(config: UseCasesConfig, services: UseCasesServices) -> UseCases {
+        Self { config, services }
     }
 
     pub async fn signup(&self, request: SignUpRequest) -> Result<SignUpResponse, SignUpError> {
@@ -116,11 +104,16 @@ impl UseCases {
         handle_get_public_key(request, self.services.keypair_repository.clone()).await
     }
 
-    pub async fn rotate_keypairs(&self) {
-        todo!()
-    }
-
-    pub async fn revoke_keypair(&self) {
-        todo!()
+    pub async fn rotate_keypairs(
+        &self,
+        request: RotateKeyPairsRequest,
+    ) -> Result<RotateKeyPairsResponse, RotateKeyPairsError> {
+        handle_rotate_keypairs(
+            request,
+            self.services.keypair_repository.clone(),
+            self.services.time_service.clone(),
+            self.config.access_token_expiration_seconds,
+        )
+        .await
     }
 }

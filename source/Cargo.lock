@@ -658,6 +658,7 @@ dependencies = [
  "nimbus_auth_shared",
  "thiserror",
  "time",
+ "tokio",
  "tracing",
  "tracing-subscriber",
  "ulid",
@@ -720,8 +721,6 @@ version = "0.1.0"
 dependencies = [
  "thiserror",
  "time",
- "tracing",
- "tracing-subscriber",
  "ulid",
 ]
 

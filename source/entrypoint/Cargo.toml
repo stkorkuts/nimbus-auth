@@ -16,9 +16,7 @@ tracing-subscriber.workspace = true
 time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
+tokio.workspace = true
 
 # Configuration
 dotenvy = { version = "0.15.7" }
-
-# Runtime
-tokio = { version = "1.45.1", features = ["full"] }

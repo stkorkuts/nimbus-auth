@@ -5,8 +5,6 @@ edition = "2024"
 
 [dependencies]
 # Workspace dependencies
-tracing.workspace = true
-tracing-subscriber.workspace = true
 time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true

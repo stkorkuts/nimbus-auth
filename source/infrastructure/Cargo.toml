@@ -15,9 +15,7 @@ tracing-subscriber.workspace = true
 time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
-
-# Runtime
-tokio = { version = "1.45.1", features = ["full"] }
+tokio.workspace = true
 
 # Api
 axum = "0.8.4"
