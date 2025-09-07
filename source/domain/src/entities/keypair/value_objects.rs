@@ -7,7 +7,7 @@ use ed25519_dalek::{
 };
 use rand::rngs::OsRng;
 
-use crate::value_objects::keypair_value::errors::KeyPairValueError;
+use crate::entities::keypair::value_objects::errors::KeyPairValueError;
 
 pub mod errors;
 

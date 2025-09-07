@@ -15,18 +15,3 @@ pub fn pin_error_boxed<T>(
 ) -> PinnedFuture<T, ErrorBoxed> {
     Box::pin(fut)
 }
-
-pub trait PinnedFutureExt<T, E> {
-    fn box_error(self) -> PinnedFuture<T, ErrorBoxed>;
-}
-
-impl<T: 'static, E: Error + Send + Sync + 'static> PinnedFutureExt<T, E> for PinnedFuture<T, E> {
-    fn box_error(self) -> PinnedFuture<T, ErrorBoxed> {
-        pin_error_boxed(async move {
-            match self.await {
-                Ok(val) => Ok(val),
-                Err(err) => Err(Box::new(err) as ErrorBoxed),
-            }
-        })
-    }
-}

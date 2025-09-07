@@ -56,12 +56,12 @@ pub struct UseCasesServices {
     pub time_service: Arc<dyn TimeService>,
 }
 
-impl UseCases {
+impl<'a> UseCases {
     pub fn new(config: UseCasesConfig, services: UseCasesServices) -> UseCases {
         Self { config, services }
     }
 
-    pub async fn signup(&self, request: SignUpRequest) -> Result<SignUpResponse, SignUpError> {
+    pub async fn signup(&self, request: SignUpRequest<'a>) -> Result<SignUpResponse, SignUpError> {
         handle_signup(
             request,
             self.services.user_repository.clone(),

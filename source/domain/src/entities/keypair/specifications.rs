@@ -2,8 +2,8 @@ use time::OffsetDateTime;
 use ulid::Ulid;
 
 use crate::{
-    entities::keypair::{KeyPair, Uninitialized},
-    value_objects::{identifier::Identifier, keypair_value::KeyPairValue},
+    entities::keypair::{KeyPair, Uninitialized, value_objects::KeyPairValue},
+    value_objects::identifier::Identifier,
 };
 
 pub struct NewKeyPairSpecification {}

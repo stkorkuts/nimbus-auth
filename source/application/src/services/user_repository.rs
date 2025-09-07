@@ -1,31 +1,39 @@
-use nimbus_auth_domain::entities::{
-    session::{Active, Session},
-    user::User,
+use nimbus_auth_domain::{
+    entities::{
+        session::{Active, Session},
+        user::{User, value_objects::name::UserName},
+    },
+    value_objects::identifier::Identifier,
 };
-use nimbus_auth_shared::{errors::ErrorBoxed, futures::PinnedFuture};
+use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
-use crate::services::transactions::{Transaction, Transactional};
+use crate::services::{
+    transactions::{Transaction, Transactional},
+    user_repository::errors::UserRepositoryError,
+};
+
+pub mod errors;
 
 pub trait UserRepository: Transactional<TransactionType = Transaction> + Send + Sync {
     fn get_by_id(
         &self,
-        id: &Ulid,
+        id: Identifier<Ulid, User>,
         transaction: Option<Self::TransactionType>,
-    ) -> PinnedFuture<Option<User>, ErrorBoxed>;
-    fn get_by_username(
+    ) -> PinnedFuture<Option<User>, UserRepositoryError>;
+    fn get_by_name(
         &self,
-        username: &str,
+        user_name: UserName,
         transaction: Option<Self::TransactionType>,
-    ) -> PinnedFuture<Option<User>, ErrorBoxed>;
+    ) -> PinnedFuture<Option<User>, UserRepositoryError>;
     fn get_by_session(
         &self,
         refresh_token: &Session<Active>,
         transaction: Option<Self::TransactionType>,
-    ) -> PinnedFuture<Option<User>, ErrorBoxed>;
+    ) -> PinnedFuture<Option<User>, UserRepositoryError>;
     fn save(
         &self,
         user: &User,
         transaction: Option<Self::TransactionType>,
-    ) -> PinnedFuture<(), ErrorBoxed>;
+    ) -> PinnedFuture<(), UserRepositoryError>;
 }

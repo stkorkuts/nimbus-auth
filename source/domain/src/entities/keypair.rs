@@ -5,16 +5,17 @@ use ulid::Ulid;
 use crate::{
     entities::{
         Entity,
-        keypair::specifications::{NewKeyPairSpecification, RestoreKeyPairSpecification},
+        keypair::{
+            specifications::{NewKeyPairSpecification, RestoreKeyPairSpecification},
+            value_objects::KeyPairValue,
+        },
     },
-    value_objects::{
-        identifier::{Identifier, IdentifierOfType},
-        keypair_value::KeyPairValue,
-    },
+    value_objects::identifier::{Identifier, IdentifierOfType},
 };
 
 pub mod errors;
 pub mod specifications;
+pub mod value_objects;
 
 pub trait KeyPairState {}
 

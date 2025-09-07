@@ -1,33 +1,34 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
-use nimbus_auth_shared::{
-    errors::ErrorBoxed,
-    futures::{PinnedFuture, pin, pin_error_boxed},
-};
+use nimbus_auth_shared::futures::{PinnedFuture, pin};
 use tokio::sync::Mutex;
+
+use crate::services::transactions::errors::TransactionError;
+
+pub mod errors;
 
 pub trait Transactional {
     type TransactionType: TransactionLike;
-    fn start_transaction(&self) -> PinnedFuture<Self::TransactionType, ErrorBoxed>;
+    fn start_transaction(&self) -> PinnedFuture<Self::TransactionType, TransactionError>;
 }
 
 pub trait TransactionLike: Send + Sync {
-    fn commit(&mut self) -> PinnedFuture<(), ErrorBoxed>;
-    fn rollback(&mut self) -> PinnedFuture<(), ErrorBoxed>;
+    fn commit(&mut self) -> PinnedFuture<(), TransactionError>;
+    fn rollback(&mut self) -> PinnedFuture<(), TransactionError>;
 }
 
 #[derive(Clone)]
 pub struct Transaction(Arc<Mutex<Box<dyn TransactionLike>>>);
 
 impl TransactionLike for Transaction {
-    fn commit(&mut self) -> PinnedFuture<(), ErrorBoxed> {
+    fn commit(&mut self) -> PinnedFuture<(), TransactionError> {
         let inner = self.0.clone();
-        pin_error_boxed(async move { inner.lock().await.commit().await })
+        pin(async move { inner.lock().await.commit().await })
     }
 
-    fn rollback(&mut self) -> PinnedFuture<(), ErrorBoxed> {
+    fn rollback(&mut self) -> PinnedFuture<(), TransactionError> {
         let inner = self.0.clone();
-        pin_error_boxed(async move { inner.lock().await.rollback().await })
+        pin(async move { inner.lock().await.rollback().await })
     }
 }
 
@@ -39,11 +40,11 @@ impl Transaction {
     pub async fn run<
         T: Send + 'static,
         F: FnOnce(Transaction) -> Fut,
-        Fut: Future<Output = Result<T, ErrorBoxed>> + Send + 'static,
+        Fut: Future<Output = Result<T, TransactionError>> + Send + 'static,
     >(
         &mut self,
         f: F,
-    ) -> Result<T, ErrorBoxed> {
+    ) -> Result<T, TransactionError> {
         let mut tx = self.clone();
         let result = f(tx.clone()).await;
         match result {

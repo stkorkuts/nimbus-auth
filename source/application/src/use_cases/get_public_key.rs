@@ -12,5 +12,13 @@ pub async fn handle_get_public_key(
     GetPublicKeyRequest { key_id: _key_id }: GetPublicKeyRequest,
     keypair_repository: Arc<dyn KeyPairRepository>,
 ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
-    todo!()
+    Ok(GetPublicKeyResponse {
+        public_key_pem: keypair_repository
+            .get_active(None)
+            .await?
+            .ok_or(GetPublicKeyError::ActiveKeyPairNotFound)?
+            .value()
+            .public()
+            .to_vec(),
+    })
 }
