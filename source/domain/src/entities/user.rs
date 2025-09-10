@@ -30,11 +30,11 @@ impl Entity<Ulid> for User {
 }
 
 impl User {
-    pub fn new(specs: NewUserSpecification) -> Result<Self, NewUserError> {
+    pub fn new(specs: NewUserSpecification) -> Self {
         todo!()
     }
 
-    pub fn restore(specs: RestoreUserSpecification) -> Result<Self, NewUserError> {
+    pub fn restore(specs: RestoreUserSpecification) -> Self {
         todo!()
     }
 

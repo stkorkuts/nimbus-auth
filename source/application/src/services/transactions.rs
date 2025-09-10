@@ -7,9 +7,26 @@ use crate::services::transactions::errors::TransactionError;
 
 pub mod errors;
 
+pub enum TransactionIsolationLevel {
+    Default,
+    ReadCommited,
+    RepeatableRead,
+    Serializable,
+}
+
+pub enum TransactonBlockTarget {
+    Default,
+    Row,
+    Table,
+}
+
 pub trait Transactional {
     type TransactionType: TransactionLike;
-    fn start_transaction(&self) -> PinnedFuture<Self::TransactionType, TransactionError>;
+    fn start_transaction(
+        &self,
+        isolation_level: TransactionIsolationLevel,
+        block_target: TransactonBlockTarget,
+    ) -> PinnedFuture<Self::TransactionType, TransactionError>;
 }
 
 pub trait TransactionLike: Send + Sync {

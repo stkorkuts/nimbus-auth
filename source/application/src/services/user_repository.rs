@@ -23,7 +23,7 @@ pub trait UserRepository: Transactional<TransactionType = Transaction> + Send + 
     ) -> PinnedFuture<Option<User>, UserRepositoryError>;
     fn get_by_name(
         &self,
-        user_name: UserName,
+        user_name: &UserName,
         transaction: Option<Self::TransactionType>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError>;
     fn get_by_session(

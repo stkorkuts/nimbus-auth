@@ -6,7 +6,11 @@ use nimbus_auth_domain::entities::keypair::{
 use nimbus_auth_shared::config::AccessTokenExpirationSeconds;
 
 use crate::{
-    services::{keypair_repository::KeyPairRepository, time_service::TimeService},
+    services::{
+        keypair_repository::KeyPairRepository,
+        time_service::TimeService,
+        transactions::{TransactionIsolationLevel, TransactonBlockTarget},
+    },
     use_cases::{RotateKeyPairsError, RotateKeyPairsRequest, RotateKeyPairsResponse},
 };
 
@@ -19,7 +23,12 @@ pub async fn handle_rotate_keypairs(
     time_service: Arc<dyn TimeService>,
     expiration_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RotateKeyPairsResponse, RotateKeyPairsError> {
-    let mut transaction = keypair_repository.start_transaction().await?;
+    let mut transaction = keypair_repository
+        .start_transaction(
+            TransactionIsolationLevel::Serializable,
+            TransactonBlockTarget::Table,
+        )
+        .await?;
 
     transaction
         .run(async move |inner_transaction| {
