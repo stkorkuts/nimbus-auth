@@ -29,6 +29,8 @@ impl TransactionLike for PostgreSQLUserRepositoryTransaction {
     }
 }
 
+impl PostgreSQLUserRepository {}
+
 impl Transactional for PostgreSQLUserRepository {
     type TransactionType = Transaction;
 

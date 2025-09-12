@@ -3,7 +3,7 @@ use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_shared::config::AppConfig;
 use tokio::net::TcpListener;
 
-use crate::api::{errors::WebApiError, handlers::signup::handle_signup};
+use crate::axum_api::{errors::WebApiError, handlers::signup::handle_signup};
 
 pub mod errors;
 mod handlers;

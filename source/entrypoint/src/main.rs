@@ -1,7 +1,7 @@
 use std::{env, error::Error};
 
 use nimbus_auth_application::use_cases::UseCases;
-use nimbus_auth_infrastructure::api::WebApi;
+use nimbus_auth_infrastructure::axum_api::WebApi;
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
