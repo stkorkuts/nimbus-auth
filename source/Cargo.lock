@@ -671,7 +671,6 @@ dependencies = [
  "ed25519-dalek",
  "jsonwebtoken",
  "nimbus_auth_shared",
- "rand 0.8.5",
  "serde",
  "thiserror",
  "time",
@@ -702,11 +701,13 @@ name = "nimbus_auth_infrastructure"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "ed25519-dalek",
  "nimbus_auth_application",
  "nimbus_auth_domain",
  "nimbus_auth_shared",
  "prost",
  "prost-build",
+ "rand 0.8.5",
  "thiserror",
  "time",
  "tokio",

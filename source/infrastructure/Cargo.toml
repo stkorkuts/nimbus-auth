@@ -23,5 +23,9 @@ axum = "0.8.4"
 # Protobuf
 prost = "0.12"
 
+# Crypto
+ed25519-dalek = { version = "2.2.0", features = ["rand_core", "pkcs8", "pem"] }
+rand = "0.8"
+
 [build-dependencies]
 prost-build = "0.12"

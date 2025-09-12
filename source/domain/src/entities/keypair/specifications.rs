@@ -1,3 +1,4 @@
+use ed25519_dalek::SigningKey;
 use time::OffsetDateTime;
 use ulid::Ulid;
 
@@ -6,7 +7,9 @@ use crate::{
     value_objects::identifier::Identifier,
 };
 
-pub struct NewKeyPairSpecification {}
+pub struct NewKeyPairSpecification {
+    pub value: KeyPairValue,
+}
 
 pub struct RestoreKeyPairSpecification {
     pub id: Identifier<Ulid, KeyPair<Uninitialized>>,

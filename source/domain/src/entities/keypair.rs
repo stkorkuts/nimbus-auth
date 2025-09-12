@@ -1,3 +1,4 @@
+use ed25519_dalek::SigningKey;
 use nimbus_auth_shared::config::AccessTokenExpirationSeconds;
 use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
@@ -65,12 +66,10 @@ impl KeyPairState for Expired {}
 impl KeyPairState for Revoked {}
 
 impl KeyPair<Uninitialized> {
-    pub fn new(NewKeyPairSpecification {}: NewKeyPairSpecification) -> KeyPair<Active> {
+    pub fn new(NewKeyPairSpecification { value }: NewKeyPairSpecification) -> KeyPair<Active> {
         KeyPair {
             id: Identifier::new(),
-            state: Active {
-                value: KeyPairValue::new(),
-            },
+            state: Active { value },
         }
     }
 
@@ -124,8 +123,9 @@ impl KeyPair<Active> {
         }
     }
 
-    pub fn rotate(
+    pub fn rotate<'a>(
         self,
+        value: KeyPairValue,
         current_time: OffsetDateTime,
         expiration_seconds: AccessTokenExpirationSeconds,
     ) -> (KeyPair<Expiring>, KeyPair<Active>) {
@@ -137,7 +137,7 @@ impl KeyPair<Active> {
                     expires_at: current_time + Duration::seconds(expiration_seconds.0 as i64),
                 },
             },
-            KeyPair::<Uninitialized>::new(NewKeyPairSpecification {}),
+            KeyPair::<Uninitialized>::new(NewKeyPairSpecification { value }),
         )
     }
 }

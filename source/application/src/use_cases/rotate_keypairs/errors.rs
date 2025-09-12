@@ -1,9 +1,17 @@
+use nimbus_auth_domain::entities::keypair::value_objects::errors::KeyPairValueError;
 use thiserror::Error;
 
-use crate::services::transactions::errors::TransactionError;
+use crate::services::{
+    keypair_repository::errors::KeyPairRepositoryError, random_service::errors::RandomServiceError,
+    transactions::errors::TransactionError,
+};
 
 #[derive(Debug, Error)]
 pub enum RotateKeyPairsError {
     #[error(transparent)]
     TransactionError(#[from] TransactionError),
+    #[error(transparent)]
+    RandomService(#[from] RandomServiceError),
+    #[error(transparent)]
+    KeyPairValue(#[from] KeyPairValueError),
 }

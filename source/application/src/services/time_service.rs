@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use nimbus_auth_shared::{errors::ErrorBoxed, futures::PinnedFuture};
+use nimbus_auth_shared::futures::PinnedFuture;
 use time::OffsetDateTime;
 
 use crate::services::time_service::errors::TimeServiceError;

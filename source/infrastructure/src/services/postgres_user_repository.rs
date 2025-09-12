@@ -1,12 +1,19 @@
 use nimbus_auth_application::services::{
-    transactions::{Transaction, TransactionLike, Transactional},
-    user_repository::UserRepository,
+    transactions::{
+        Transaction, TransactionIsolationLevel, TransactionLike, Transactional,
+        TransactonBlockTarget, errors::TransactionError,
+    },
+    user_repository::{UserRepository, errors::UserRepositoryError},
 };
 use nimbus_auth_domain::{
-    entities::user::{User, value_objects::UserName},
+    entities::{
+        session::{Active, Session},
+        user::{User, value_objects::name::UserName},
+    },
     value_objects::identifier::Identifier,
 };
-use nimbus_auth_shared::{errors::ErrorBoxed, futures::PinnedFuture};
+use nimbus_auth_shared::futures::PinnedFuture;
+use ulid::Ulid;
 
 pub struct PostgreSQLUserRepository {}
 
@@ -25,7 +32,11 @@ impl TransactionLike for PostgreSQLUserRepositoryTransaction {
 impl Transactional for PostgreSQLUserRepository {
     type TransactionType = Transaction;
 
-    fn start_transaction(&self) -> PinnedFuture<Self::TransactionType, TransactionError> {
+    fn start_transaction(
+        &self,
+        isolation_level: TransactionIsolationLevel,
+        block_target: TransactonBlockTarget,
+    ) -> PinnedFuture<Self::TransactionType, TransactionError> {
         todo!()
     }
 }
@@ -41,7 +52,7 @@ impl UserRepository for PostgreSQLUserRepository {
 
     fn get_by_name(
         &self,
-        name: UserName,
+        name: &UserName,
         transaction: Option<Self::TransactionType>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
@@ -49,7 +60,7 @@ impl UserRepository for PostgreSQLUserRepository {
 
     fn get_by_session(
         &self,
-        refresh_token: &Session<Active>,
+        session: &Session<Active>,
         transaction: Option<Self::TransactionType>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()

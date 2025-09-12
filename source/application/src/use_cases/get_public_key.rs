@@ -18,7 +18,7 @@ pub async fn handle_get_public_key<'a>(
             .await?
             .ok_or(GetPublicKeyError::ActiveKeyPairNotFound)?
             .value()
-            .public()
+            .public_key_pem()
             .to_vec(),
     })
 }
