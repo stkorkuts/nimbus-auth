@@ -1,7 +1,4 @@
-use nimbus_auth_domain::{
-    entities::{Entity, user::User},
-    value_objects::identifier::IdentifierOfType,
-};
+use nimbus_auth_domain::entities::{Entity, user::User};
 
 pub struct UserDto {
     pub id: String,
@@ -11,7 +8,7 @@ pub struct UserDto {
 impl From<&User> for UserDto {
     fn from(value: &User) -> Self {
         Self {
-            id: value.id().value().to_string(),
+            id: value.id().to_string(),
             name: value.name().to_string(),
         }
     }

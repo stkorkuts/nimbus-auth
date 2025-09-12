@@ -1,4 +1,4 @@
-use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
+use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
 use std::sync::Arc;
 
@@ -119,6 +119,7 @@ impl<'a> UseCases {
             self.services.user_repository.clone(),
             self.services.session_repository.clone(),
             self.services.keypair_repository.clone(),
+            self.services.time_service.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )

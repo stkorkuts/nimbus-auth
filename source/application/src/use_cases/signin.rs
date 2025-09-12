@@ -9,8 +9,8 @@ use nimbus_auth_domain::{
     value_objects::identifier::IdentifierOfType,
 };
 use nimbus_auth_shared::{
-    config::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
     errors::ErrorBoxed,
+    types::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
 };
 
 use crate::{
@@ -59,8 +59,6 @@ pub async fn handle_signin<'a>(
         return Err(SignInError::PasswordDoesNotMatchWithHash);
     }
 
-    let current_time = time_service.get_current_time().await?;
-
     let active_keypair = keypair_repository
         .get_active(None)
         .await?
@@ -68,11 +66,9 @@ pub async fn handle_signin<'a>(
 
     let session = Arc::new(Session::new(NewSessionSpecification {
         user_id: user.id().clone(),
-        current_time,
+        current_time: time_service.get_current_time().await?,
         expiration_seconds: session_exp_seconds,
     }));
-
-    let session_for_transaction = session.clone();
 
     let mut session_repo_transaction = session_repository
         .start_transaction(
@@ -81,7 +77,9 @@ pub async fn handle_signin<'a>(
         )
         .await?;
 
-    let signed_token = session_repo_transaction
+    let session_for_transaction = session.clone();
+
+    let signed_access_token = session_repo_transaction
         .run(async move |inner_session_repo_transaction| {
             session_repository
                 .save(
@@ -90,9 +88,10 @@ pub async fn handle_signin<'a>(
                 )
                 .await?;
 
-            let access_token = session_for_transaction
-                .clone()
-                .generate_access_token(current_time, access_token_exp_seconds);
+            let access_token = session_for_transaction.clone().generate_access_token(
+                time_service.get_current_time().await?,
+                access_token_exp_seconds,
+            );
             let signed_token = access_token
                 .sign(&active_keypair)
                 .map_err(|err| ErrorBoxed::from(err))?;
@@ -103,7 +102,7 @@ pub async fn handle_signin<'a>(
 
     Ok(SignInResponse {
         user: UserDto::from(user.as_ref()),
-        session_id: session.id().value().to_string(),
-        signed_access_token: signed_token,
+        session_id: session.id().to_string(),
+        signed_access_token,
     })
 }

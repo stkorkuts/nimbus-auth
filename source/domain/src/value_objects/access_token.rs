@@ -1,7 +1,7 @@
 use jsonwebtoken::{EncodingKey, Header, encode};
 use nimbus_auth_shared::{
-    config::AccessTokenExpirationSeconds,
     constants::{ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER},
+    types::AccessTokenExpirationSeconds,
 };
 use serde::Serialize;
 use time::OffsetDateTime;

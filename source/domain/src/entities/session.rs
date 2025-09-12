@@ -1,4 +1,4 @@
-use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
+use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 use time::OffsetDateTime;
 use ulid::Ulid;
 

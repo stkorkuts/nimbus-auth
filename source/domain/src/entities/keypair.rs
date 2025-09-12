@@ -1,5 +1,4 @@
-use ed25519_dalek::SigningKey;
-use nimbus_auth_shared::config::AccessTokenExpirationSeconds;
+use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
 use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
@@ -123,6 +122,11 @@ impl KeyPair<Active> {
         }
     }
 
+    /// Rotates a key
+    ///
+    /// Current key moves to the `Expiring` status with expiration time equals to `expiration_seconds * 2`
+    ///
+    /// New key is generated in `Active` status without expiration time
     pub fn rotate<'a>(
         self,
         value: KeyPairValue,
@@ -134,7 +138,7 @@ impl KeyPair<Active> {
                 id: Identifier::from(self.id.value()),
                 state: Expiring {
                     value: self.state.value,
-                    expires_at: current_time + Duration::seconds(expiration_seconds.0 as i64),
+                    expires_at: current_time + Duration::seconds((expiration_seconds.0 * 2) as i64),
                 },
             },
             KeyPair::<Uninitialized>::new(NewKeyPairSpecification { value }),

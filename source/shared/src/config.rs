@@ -1,14 +1,9 @@
 use std::path::PathBuf;
 
-use crate::constants::{
-    ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT, SESSION_EXPIRATION_SECONDS_DEFAULT,
+use crate::{
+    constants::{ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT, SESSION_EXPIRATION_SECONDS_DEFAULT},
+    types::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
 };
-
-#[derive(Clone, Copy)]
-pub struct SessionExpirationSeconds(pub u32);
-
-#[derive(Clone, Copy)]
-pub struct AccessTokenExpirationSeconds(pub u32);
 
 pub struct AppConfigBuilder {
     server_addr: String,
