@@ -1,7 +1,5 @@
-use std::error::Error;
-
-use nimbus_auth_domain::entities::session::InitializedSession;
-use nimbus_auth_shared::{errors::ErrorBoxed, futures::PinnedFuture};
+use nimbus_auth_domain::entities::session::{InitializedSession, InitializedSessionRef};
+use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
 use crate::services::{
@@ -19,7 +17,7 @@ pub trait SessionRepository: Transactional<TransactionType = Transaction> + Send
     ) -> PinnedFuture<Option<InitializedSession>, SessionRepositoryError>;
     fn save(
         &self,
-        session: &InitializedSession,
+        session: InitializedSessionRef,
         transaction: Option<Self::TransactionType>,
     ) -> PinnedFuture<(), SessionRepositoryError>;
 }

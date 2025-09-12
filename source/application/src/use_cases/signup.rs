@@ -1,15 +1,24 @@
 use std::sync::Arc;
 
-use nimbus_auth_domain::entities::{
-    Entity,
-    session::{InitializedSession, Session, specifications::NewSessionSpecification},
-    user::{
-        User,
-        specifications::NewUserSpecification,
-        value_objects::{name::UserName, password::Password},
+use nimbus_auth_domain::{
+    entities::{
+        Entity,
+        session::{
+            InitializedSession, InitializedSessionRef, Session,
+            specifications::NewSessionSpecification,
+        },
+        user::{
+            User,
+            specifications::NewUserSpecification,
+            value_objects::{name::UserName, password::Password},
+        },
     },
+    value_objects::identifier::IdentifierOfType,
 };
-use nimbus_auth_shared::config::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
+use nimbus_auth_shared::{
+    config::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
+    errors::ErrorBoxed,
+};
 
 use crate::{
     services::{
@@ -19,7 +28,7 @@ use crate::{
         transactions::{TransactionIsolationLevel, TransactonBlockTarget},
         user_repository::UserRepository,
     },
-    use_cases::{SignUpRequest, SignUpResponse, signup::errors::SignUpError},
+    use_cases::{SignUpRequest, SignUpResponse, UserDto, signup::errors::SignUpError},
 };
 
 pub mod errors;
@@ -41,13 +50,13 @@ pub async fn handle_signup<'a>(
 
     let existing_user = user_repository.get_by_name(&user_name, None).await?;
 
-    let password = Password::from(password)?;
-
     if let Some(user) = existing_user {
         return Err(SignUpError::UserAlreadyExists {
             user_name: user.name().to_string(),
         });
     }
+
+    let password = Password::from(password)?;
 
     let current_time = time_service.get_current_time().await?;
 
@@ -56,16 +65,16 @@ pub async fn handle_signup<'a>(
         .await?
         .ok_or(SignUpError::ActiveKeyPairNotFound)?;
 
-    let user = User::new(NewUserSpecification {
+    let user = Arc::new(User::new(NewUserSpecification {
         user_name,
         password,
-    });
+    }));
 
-    let session = Session::new(NewSessionSpecification {
+    let session = Arc::new(Session::new(NewSessionSpecification {
         user_id: user.id().clone(),
         current_time,
         expiration_seconds: session_exp_seconds,
-    });
+    }));
 
     let mut user_repo_transaction = user_repository
         .start_transaction(
@@ -74,10 +83,16 @@ pub async fn handle_signup<'a>(
         )
         .await?;
 
+    let user_for_transaction = user.clone();
+    let session_for_transaction = session.clone();
+
     let signed_token = user_repo_transaction
         .run(async move |inner_user_repo_transacton| {
             user_repository
-                .save(&user, Some(inner_user_repo_transacton.clone()))
+                .save(
+                    user_for_transaction.clone().as_ref(),
+                    Some(inner_user_repo_transacton.clone()),
+                )
                 .await?;
 
             let mut session_repo_transaction = session_repository
@@ -91,19 +106,27 @@ pub async fn handle_signup<'a>(
                 .run(async move |inner_session_repo_transaction| {
                     session_repository
                         .save(
-                            &InitializedSession::from(session),
+                            InitializedSessionRef::from(session_for_transaction.clone().as_ref()),
                             Some(inner_session_repo_transaction),
                         )
                         .await?;
 
-                    let access_token =
-                        session.generate_access_token(current_time, access_token_exp_seconds);
-                    let signed_token = access_token.sign(&active_keypair)?;
+                    let access_token = session_for_transaction
+                        .clone()
+                        .generate_access_token(current_time, access_token_exp_seconds);
+                    let signed_token = access_token
+                        .sign(&active_keypair)
+                        .map_err(|err| ErrorBoxed::from(err))?;
 
                     Ok(signed_token)
                 })
                 .await?)
         })
         .await?;
-    todo!()
+
+    Ok(SignUpResponse {
+        user: UserDto::from(user.as_ref()),
+        session_id: session.id().value().to_string(),
+        signed_access_token: signed_token,
+    })
 }

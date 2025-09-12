@@ -1,3 +1,4 @@
+use nimbus_auth_shared::errors::ErrorBoxed;
 use thiserror::Error;
 
 use crate::services::{
@@ -16,4 +17,6 @@ pub enum TransactionError {
     TimeService(#[from] TimeServiceError),
     #[error(transparent)]
     UserRepository(#[from] UserRepositoryError),
+    #[error(transparent)]
+    Other(#[from] ErrorBoxed),
 }

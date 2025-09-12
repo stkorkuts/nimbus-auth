@@ -16,6 +16,9 @@ use crate::{
     },
 };
 
+mod dtos;
+pub use dtos::user::*;
+
 mod signup;
 pub use signup::errors::*;
 pub use signup::schema::*;
@@ -74,12 +77,13 @@ impl<'a> UseCases {
         .await
     }
 
-    pub async fn signin(&self, request: SignInRequest) -> Result<SignInResponse, SignInError> {
+    pub async fn signin(&self, request: SignInRequest<'a>) -> Result<SignInResponse, SignInError> {
         handle_signin(
             request,
             self.services.user_repository.clone(),
             self.services.session_repository.clone(),
             self.services.keypair_repository.clone(),
+            self.services.time_service.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )
@@ -100,7 +104,7 @@ impl<'a> UseCases {
 
     pub async fn get_public_key(
         &self,
-        request: GetPublicKeyRequest,
+        request: GetPublicKeyRequest<'a>,
     ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
         handle_get_public_key(request, self.services.keypair_repository.clone()).await
     }

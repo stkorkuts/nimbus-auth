@@ -8,8 +8,8 @@ use crate::{
 pub mod errors;
 pub mod schema;
 
-pub async fn handle_get_public_key(
-    GetPublicKeyRequest { key_id: _key_id }: GetPublicKeyRequest,
+pub async fn handle_get_public_key<'a>(
+    GetPublicKeyRequest { key_id: _key_id }: GetPublicKeyRequest<'a>,
     keypair_repository: Arc<dyn KeyPairRepository>,
 ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
     Ok(GetPublicKeyResponse {

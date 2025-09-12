@@ -4,9 +4,8 @@ use crate::{
     entities::{
         Entity,
         user::{
-            errors::NewUserError,
             specifications::{NewUserSpecification, RestoreUserSpecification},
-            value_objects::name::UserName,
+            value_objects::{name::UserName, password_hash::PasswordHash},
         },
     },
     value_objects::identifier::Identifier,
@@ -19,6 +18,7 @@ pub mod value_objects;
 pub struct User {
     id: Identifier<Ulid, User>,
     name: UserName,
+    password_hash: PasswordHash,
 }
 
 impl Entity<Ulid> for User {
@@ -40,5 +40,9 @@ impl User {
 
     pub fn name(&self) -> &UserName {
         &self.name
+    }
+
+    pub fn password_hash(&self) -> &PasswordHash {
+        &self.password_hash
     }
 }

@@ -45,6 +45,12 @@ pub enum InitializedSession {
     Expired(Session<Expired>),
 }
 
+pub enum InitializedSessionRef<'a> {
+    Active(&'a Session<Active>),
+    Revoked(&'a Session<Revoked>),
+    Expired(&'a Session<Expired>),
+}
+
 impl<State: SessionState> Entity<Ulid> for Session<State> {
     type Id = Identifier<Ulid, Session<State>>;
 
@@ -183,5 +189,23 @@ impl From<Session<Expired>> for InitializedSession {
 impl From<Session<Revoked>> for InitializedSession {
     fn from(session: Session<Revoked>) -> Self {
         InitializedSession::Revoked(session)
+    }
+}
+
+impl<'a> From<&'a Session<Active>> for InitializedSessionRef<'a> {
+    fn from(session: &'a Session<Active>) -> Self {
+        InitializedSessionRef::Active(session)
+    }
+}
+
+impl<'a> From<&'a Session<Expired>> for InitializedSessionRef<'a> {
+    fn from(session: &'a Session<Expired>) -> Self {
+        InitializedSessionRef::Expired(session)
+    }
+}
+
+impl<'a> From<&'a Session<Revoked>> for InitializedSessionRef<'a> {
+    fn from(session: &'a Session<Revoked>) -> Self {
+        InitializedSessionRef::Revoked(session)
     }
 }
