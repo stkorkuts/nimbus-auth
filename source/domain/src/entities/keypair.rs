@@ -83,21 +83,21 @@ impl KeyPair<Uninitialized> {
     ) -> InitializedKeyPair {
         match revoked_at {
             Some(revoked_at) => InitializedKeyPair::from(KeyPair {
-                id: Identifier::from(id.value()),
+                id: Identifier::from(*id.value()),
                 state: Revoked { revoked_at },
             }),
             None => match expires_at {
                 None => InitializedKeyPair::from(KeyPair {
-                    id: Identifier::from(id.value()),
+                    id: Identifier::from(*id.value()),
                     state: Active { value },
                 }),
                 Some(expires_at) => match (expires_at - current_time).whole_seconds() > 0 {
                     true => InitializedKeyPair::from(KeyPair {
-                        id: Identifier::from(id.value()),
+                        id: Identifier::from(*id.value()),
                         state: Expiring { expires_at, value },
                     }),
                     false => InitializedKeyPair::from(KeyPair {
-                        id: Identifier::from(id.value()),
+                        id: Identifier::from(*id.value()),
                         state: Expired {
                             expired_at: expires_at,
                         },
@@ -115,7 +115,7 @@ impl KeyPair<Active> {
 
     pub fn revoke(self, current_time: OffsetDateTime) -> KeyPair<Revoked> {
         KeyPair {
-            id: Identifier::from(self.id.value()),
+            id: Identifier::from(*self.id.value()),
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -135,7 +135,7 @@ impl KeyPair<Active> {
     ) -> (KeyPair<Expiring>, KeyPair<Active>) {
         (
             KeyPair {
-                id: Identifier::from(self.id.value()),
+                id: Identifier::from(*self.id.value()),
                 state: Expiring {
                     value: self.state.value,
                     expires_at: current_time + Duration::seconds((expiration_seconds.0 * 2) as i64),

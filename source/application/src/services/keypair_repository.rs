@@ -1,4 +1,7 @@
-use nimbus_auth_domain::entities::keypair::{Active, InitializedKeyPair, KeyPair};
+use nimbus_auth_domain::{
+    entities::keypair::{Active, InitializedKeyPair, KeyPair, Uninitialized},
+    value_objects::identifier::Identifier,
+};
 use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
@@ -12,7 +15,7 @@ pub mod errors;
 pub trait KeyPairRepository: Transactional<TransactionType = Transaction> + Send + Sync {
     fn get_by_id(
         &self,
-        id: &Ulid,
+        id: &Identifier<Ulid, KeyPair<Uninitialized>>,
         transaction: Option<Self::TransactionType>,
     ) -> PinnedFuture<Option<InitializedKeyPair>, KeyPairRepositoryError>;
     fn get_active(

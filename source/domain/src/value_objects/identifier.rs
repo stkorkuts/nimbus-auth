@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref};
+use std::marker::PhantomData;
 
 use ulid::Ulid;
 
@@ -36,8 +36,8 @@ impl<TEntity: Entity<Ulid>> IdentifierOfType<Ulid> for Identifier<Ulid, TEntity>
     }
 }
 
-impl<TEntity: Entity<Ulid>> From<Ulid> for Identifier<Ulid, TEntity> {
-    fn from(value: Ulid) -> Self {
+impl<TEntity: Entity<Ulid>> Identifier<Ulid, TEntity> {
+    pub fn from(value: Ulid) -> Self {
         Self {
             _marker: PhantomData,
             value,
@@ -45,19 +45,8 @@ impl<TEntity: Entity<Ulid>> From<Ulid> for Identifier<Ulid, TEntity> {
     }
 }
 
-impl<TEntity: Entity<Ulid>> From<&Ulid> for Identifier<Ulid, TEntity> {
-    fn from(value: &Ulid) -> Self {
-        Self {
-            _marker: PhantomData,
-            value: *value,
-        }
-    }
-}
-
-impl<TEntity: Entity<Ulid>> Deref for Identifier<Ulid, TEntity> {
-    type Target = Ulid;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
+impl<TEntity: Entity<Ulid>> ToString for Identifier<Ulid, TEntity> {
+    fn to_string(&self) -> String {
+        self.value.to_string()
     }
 }

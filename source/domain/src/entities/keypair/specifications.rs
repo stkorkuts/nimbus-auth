@@ -1,4 +1,3 @@
-use ed25519_dalek::SigningKey;
 use time::OffsetDateTime;
 use ulid::Ulid;
 

@@ -92,18 +92,18 @@ impl Session<Uninitialized> {
     ) -> InitializedSession {
         match revoked_at {
             Some(revoked_at) => InitializedSession::from(Session {
-                id: Identifier::from(id.value()),
+                id: Identifier::from(*id.value()),
                 user_id,
                 state: Revoked { revoked_at },
             }),
             None => match (expires_at - current_time).whole_seconds() > 0 {
                 true => InitializedSession::from(Session {
-                    id: Identifier::from(id.value()),
+                    id: Identifier::from(*id.value()),
                     user_id,
                     state: Active { expires_at },
                 }),
                 false => InitializedSession::from(Session {
-                    id: Identifier::from(id.value()),
+                    id: Identifier::from(*id.value()),
                     user_id,
                     state: Expired {
                         expired_at: expires_at,
@@ -120,7 +120,7 @@ impl Session<Active> {
         current_time: OffsetDateTime,
     ) -> Session<Revoked> {
         Session {
-            id: Identifier::from(id.value()),
+            id: Identifier::from(*id.value()),
             user_id,
             state: Revoked {
                 revoked_at: current_time,
@@ -135,7 +135,7 @@ impl Session<Active> {
     ) -> (Session<Revoked>, Session<Active>) {
         (
             Session {
-                id: Identifier::from(id.value()),
+                id: Identifier::from(*id.value()),
                 user_id: user_id.clone(),
                 state: Revoked {
                     revoked_at: current_time,
