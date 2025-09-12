@@ -12,15 +12,15 @@ use crate::services::{
 
 pub mod errors;
 
-pub trait SessionRepository: Transactional<TransactionType = Transaction> + Send + Sync {
+pub trait SessionRepository: Transactional + Send + Sync {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, Session<Uninitialized>>,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<InitializedSession>, SessionRepositoryError>;
     fn save(
         &self,
         session: InitializedSessionRef,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<(), SessionRepositoryError>;
 }

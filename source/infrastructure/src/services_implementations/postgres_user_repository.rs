@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use nimbus_auth_application::services::{
     transactions::{
         Transaction, TransactionIsolationLevel, TransactionLike, Transactional,
@@ -12,14 +14,24 @@ use nimbus_auth_domain::{
     },
     value_objects::identifier::Identifier,
 };
-use nimbus_auth_shared::futures::PinnedFuture;
+use nimbus_auth_shared::{
+    errors::ErrorBoxed,
+    futures::{PinnedFuture, pin},
+};
+use sqlx::Acquire;
 use ulid::Ulid;
 
-pub struct PostgreSQLUserRepository {}
+use crate::postgres_db::PostgresDatabase;
 
-pub struct PostgreSQLUserRepositoryTransaction {}
+pub struct PostgresUserRepository {
+    database: Arc<PostgresDatabase>,
+}
 
-impl TransactionLike for PostgreSQLUserRepositoryTransaction {
+pub struct PostgresUserRepositoryTransaction {
+    inner_transaction: Arc<sqlx::Transaction<'static, sqlx::Postgres>>,
+}
+
+impl TransactionLike for PostgresUserRepositoryTransaction {
     fn commit(&mut self) -> PinnedFuture<(), TransactionError> {
         todo!()
     }
@@ -29,25 +41,46 @@ impl TransactionLike for PostgreSQLUserRepositoryTransaction {
     }
 }
 
-impl PostgreSQLUserRepository {}
+impl PostgresUserRepository {
+    pub fn new(database: Arc<PostgresDatabase>) -> Self {
+        Self { database }
+    }
+}
 
-impl Transactional for PostgreSQLUserRepository {
-    type TransactionType = Transaction;
+impl PostgresUserRepositoryTransaction {
+    pub fn new(transaction: Arc<sqlx::Transaction<'static, sqlx::Postgres>>) -> Self {
+        Self {
+            inner_transaction: transaction,
+        }
+    }
+}
 
+impl Transactional for PostgresUserRepository {
     fn start_transaction(
         &self,
         isolation_level: TransactionIsolationLevel,
         block_target: TransactonBlockTarget,
-    ) -> PinnedFuture<Self::TransactionType, TransactionError> {
-        todo!()
+    ) -> PinnedFuture<Transaction, TransactionError> {
+        let db = self.database.clone();
+        pin(async move {
+            let mut conn = db
+                .pool()
+                .acquire()
+                .await
+                .map_err(|err| ErrorBoxed::from(err))?;
+            let transaction = Arc::new(conn.begin().await.map_err(|err| ErrorBoxed::from(err))?);
+            Ok(Transaction::new(Box::new(
+                PostgresUserRepositoryTransaction::new(transaction),
+            )))
+        })
     }
 }
 
-impl UserRepository for PostgreSQLUserRepository {
+impl UserRepository for PostgresUserRepository {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
@@ -55,7 +88,7 @@ impl UserRepository for PostgreSQLUserRepository {
     fn get_by_name(
         &self,
         name: &UserName,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
@@ -63,7 +96,7 @@ impl UserRepository for PostgreSQLUserRepository {
     fn get_by_session(
         &self,
         session: &Session<Active>,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
@@ -71,7 +104,7 @@ impl UserRepository for PostgreSQLUserRepository {
     fn save(
         &self,
         user: &User,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<(), UserRepositoryError> {
         todo!()
     }

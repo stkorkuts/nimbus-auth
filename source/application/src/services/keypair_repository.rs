@@ -12,19 +12,19 @@ use crate::services::{
 
 pub mod errors;
 
-pub trait KeyPairRepository: Transactional<TransactionType = Transaction> + Send + Sync {
+pub trait KeyPairRepository: Transactional + Send + Sync {
     fn get_by_id(
         &self,
         id: &Identifier<Ulid, KeyPair<Uninitialized>>,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<InitializedKeyPair>, KeyPairRepositoryError>;
     fn get_active(
         &self,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError>;
     fn save(
         &self,
         keypair: &InitializedKeyPair,
-        transaction: Option<Self::TransactionType>,
+        transaction: Option<Transaction>,
     ) -> PinnedFuture<(), KeyPairRepositoryError>;
 }

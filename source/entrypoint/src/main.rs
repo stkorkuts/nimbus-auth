@@ -6,6 +6,7 @@ use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
         ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, KEYPAIRS_STORE_PATH_ENV_VAR_NAME,
+        POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME, POSTGRESQL_URL_ENV_VAR_NAME,
         SERVER_ADDR_ENV_VAR_NAME, SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME,
     },
     errors::ErrorBoxed,
@@ -32,6 +33,7 @@ fn get_config_from_env() -> Result<AppConfig, ErrorBoxed> {
     let mut config_builder = AppConfigBuilder::new(AppConfigRequiredOptions {
         server_addr: env::var(SERVER_ADDR_ENV_VAR_NAME)?,
         keypairs_store_path: env::var(KEYPAIRS_STORE_PATH_ENV_VAR_NAME)?.parse()?,
+        postgres_db_url: env::var(POSTGRESQL_URL_ENV_VAR_NAME)?.parse()?,
     });
 
     if let Ok(value) = env::var(SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME) {
@@ -42,6 +44,11 @@ fn get_config_from_env() -> Result<AppConfig, ErrorBoxed> {
     if let Ok(value) = env::var(ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME) {
         let parsed = value.parse()?;
         config_builder.with_access_token_expiration_seconds(parsed);
+    }
+
+    if let Ok(value) = env::var(POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME) {
+        let parsed = value.parse()?;
+        config_builder.with_postgres_db_max_connections(parsed);
     }
 
     Ok(config_builder.build())

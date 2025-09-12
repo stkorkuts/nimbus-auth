@@ -21,12 +21,11 @@ pub enum TransactonBlockTarget {
 }
 
 pub trait Transactional {
-    type TransactionType: TransactionLike;
     fn start_transaction(
         &self,
         isolation_level: TransactionIsolationLevel,
         block_target: TransactonBlockTarget,
-    ) -> PinnedFuture<Self::TransactionType, TransactionError>;
+    ) -> PinnedFuture<Transaction, TransactionError>;
 }
 
 pub trait TransactionLike: Send + Sync {
