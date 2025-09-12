@@ -7,6 +7,7 @@ use crate::entities::keypair::value_objects::errors::KeyPairValueError;
 
 pub mod errors;
 
+#[derive(Clone)]
 pub struct KeyPairValue {
     signing_key: SigningKey,
 }

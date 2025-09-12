@@ -4,6 +4,7 @@ use crate::entities::user::value_objects::password::errors::PasswordError;
 
 pub mod errors;
 
+#[derive(Clone)]
 pub struct Password {
     value: String,
 }
