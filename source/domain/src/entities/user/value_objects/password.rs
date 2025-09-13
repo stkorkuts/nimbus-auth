@@ -13,12 +13,14 @@ impl Password {
     pub fn from(value: &str) -> Result<Self, PasswordError> {
         todo!()
     }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
 }
 
-impl Deref for Password {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
+impl ToString for Password {
+    fn to_string(&self) -> String {
+        self.value.to_string()
     }
 }

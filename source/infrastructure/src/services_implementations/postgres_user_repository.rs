@@ -1,44 +1,36 @@
 use std::sync::Arc;
 
-use nimbus_auth_application::services::{
-    transactions::{
-        Transaction, TransactionIsolationLevel, TransactionLike, Transactional,
-        TransactonBlockTarget, errors::TransactionError,
-    },
-    user_repository::{UserRepository, errors::UserRepositoryError},
+use nimbus_auth_application::services::user_repository::{
+    TransactionalUserRepository, UserRepository, UserRepositoryBase, errors::UserRepositoryError,
 };
 use nimbus_auth_domain::{
     entities::{
         session::{Active, Session},
         user::{User, value_objects::name::UserName},
     },
-    value_objects::identifier::Identifier,
+    value_objects::identifier::{Identifier, IdentifierOfType},
 };
 use nimbus_auth_shared::{
+    constants::DEFAULT_CHANNEL_BUFFER_SIZE,
     errors::ErrorBoxed,
-    futures::{PinnedFuture, pin},
+    futures::{PinnedFuture, pin, pin_error_boxed},
 };
-use sqlx::Acquire;
+use sqlx::{Acquire, Postgres, query, query_as};
+use tokio::{spawn, sync::mpsc};
 use ulid::Ulid;
 
-use crate::postgres_db::PostgresDatabase;
+use crate::{
+    postgres_db::PostgresDatabase,
+    services_implementations::postgres_user_repository::{
+        schema::UserDb, transactional::TransactionalPostgresUserRepository,
+    },
+};
+
+mod schema;
+mod transactional;
 
 pub struct PostgresUserRepository {
     database: Arc<PostgresDatabase>,
-}
-
-pub struct PostgresUserRepositoryTransaction {
-    inner_transaction: Arc<sqlx::Transaction<'static, sqlx::Postgres>>,
-}
-
-impl TransactionLike for PostgresUserRepositoryTransaction {
-    fn commit(&mut self) -> PinnedFuture<(), TransactionError> {
-        todo!()
-    }
-
-    fn rollback(&mut self) -> PinnedFuture<(), TransactionError> {
-        todo!()
-    }
 }
 
 impl PostgresUserRepository {
@@ -47,65 +39,36 @@ impl PostgresUserRepository {
     }
 }
 
-impl PostgresUserRepositoryTransaction {
-    pub fn new(transaction: Arc<sqlx::Transaction<'static, sqlx::Postgres>>) -> Self {
-        Self {
-            inner_transaction: transaction,
-        }
-    }
-}
-
-impl Transactional for PostgresUserRepository {
-    fn start_transaction(
-        &self,
-        isolation_level: TransactionIsolationLevel,
-        block_target: TransactonBlockTarget,
-    ) -> PinnedFuture<Transaction, TransactionError> {
-        let db = self.database.clone();
-        pin(async move {
-            let mut conn = db
-                .pool()
-                .acquire()
-                .await
-                .map_err(|err| ErrorBoxed::from(err))?;
-            let transaction = Arc::new(conn.begin().await.map_err(|err| ErrorBoxed::from(err))?);
-            Ok(Transaction::new(Box::new(
-                PostgresUserRepositoryTransaction::new(transaction),
-            )))
+impl UserRepository for PostgresUserRepository {
+    fn start_transaction(&self) -> PinnedFuture<Box<dyn TransactionalUserRepository>, ErrorBoxed> {
+        let db_cloned = self.database.clone();
+        pin_error_boxed(async move {
+            let transactional_repo = TransactionalPostgresUserRepository::init(db_cloned).await?;
+            Ok(Box::new(transactional_repo) as Box<dyn TransactionalUserRepository>)
         })
     }
 }
 
-impl UserRepository for PostgresUserRepository {
+impl UserRepositoryBase for PostgresUserRepository {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
-        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
 
-    fn get_by_name(
-        &self,
-        name: &UserName,
-        transaction: Option<Transaction>,
-    ) -> PinnedFuture<Option<User>, UserRepositoryError> {
+    fn get_by_name(&self, user_name: &UserName) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
 
     fn get_by_session(
         &self,
         session: &Session<Active>,
-        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
         todo!()
     }
 
-    fn save(
-        &self,
-        user: &User,
-        transaction: Option<Transaction>,
-    ) -> PinnedFuture<(), UserRepositoryError> {
+    fn save(&self, user: &User) -> PinnedFuture<(), UserRepositoryError> {
         todo!()
     }
 }

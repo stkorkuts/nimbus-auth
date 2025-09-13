@@ -5,22 +5,14 @@ use nimbus_auth_domain::{
 use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
-use crate::services::{
-    session_repository::errors::SessionRepositoryError,
-    transactions::{Transaction, Transactional},
-};
+use crate::services::session_repository::errors::SessionRepositoryError;
 
 pub mod errors;
 
-pub trait SessionRepository: Transactional + Send + Sync {
+pub trait SessionRepository: Send + Sync {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, Session<Uninitialized>>,
-        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<InitializedSession>, SessionRepositoryError>;
-    fn save(
-        &self,
-        session: InitializedSessionRef,
-        transaction: Option<Transaction>,
-    ) -> PinnedFuture<(), SessionRepositoryError>;
+    fn save(&self, session: InitializedSessionRef) -> PinnedFuture<(), SessionRepositoryError>;
 }

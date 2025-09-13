@@ -13,12 +13,14 @@ impl UserName {
     pub fn from(value: &str) -> Result<Self, UserNameError> {
         todo!()
     }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
 }
 
-impl Deref for UserName {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
+impl ToString for UserName {
+    fn to_string(&self) -> String {
+        self.value.to_string()
     }
 }

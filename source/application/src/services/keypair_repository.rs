@@ -5,26 +5,15 @@ use nimbus_auth_domain::{
 use nimbus_auth_shared::futures::PinnedFuture;
 use ulid::Ulid;
 
-use crate::services::{
-    keypair_repository::errors::KeyPairRepositoryError,
-    transactions::{Transaction, Transactional},
-};
+use crate::services::keypair_repository::errors::KeyPairRepositoryError;
 
 pub mod errors;
 
-pub trait KeyPairRepository: Transactional + Send + Sync {
+pub trait KeyPairRepository: Send + Sync {
     fn get_by_id(
         &self,
         id: &Identifier<Ulid, KeyPair<Uninitialized>>,
-        transaction: Option<Transaction>,
     ) -> PinnedFuture<Option<InitializedKeyPair>, KeyPairRepositoryError>;
-    fn get_active(
-        &self,
-        transaction: Option<Transaction>,
-    ) -> PinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError>;
-    fn save(
-        &self,
-        keypair: &InitializedKeyPair,
-        transaction: Option<Transaction>,
-    ) -> PinnedFuture<(), KeyPairRepositoryError>;
+    fn get_active(&self) -> PinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError>;
+    fn save(&self, keypair: &InitializedKeyPair) -> PinnedFuture<(), KeyPairRepositoryError>;
 }

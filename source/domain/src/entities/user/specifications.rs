@@ -1,5 +1,11 @@
-use crate::entities::user::value_objects::{
-    name::UserName, password::Password, password_hash::PasswordHash,
+use ulid::Ulid;
+
+use crate::{
+    entities::user::{
+        User,
+        value_objects::{name::UserName, password::Password, password_hash::PasswordHash},
+    },
+    value_objects::identifier::Identifier,
 };
 
 pub struct NewUserSpecification {
@@ -8,6 +14,7 @@ pub struct NewUserSpecification {
 }
 
 pub struct RestoreUserSpecification {
+    pub id: Identifier<Ulid, User>,
     pub user_name: UserName,
-    pub password: PasswordHash,
+    pub password_hash: PasswordHash,
 }

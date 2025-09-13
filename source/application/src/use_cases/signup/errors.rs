@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::services::{
     keypair_repository::errors::KeyPairRepositoryError, time_service::errors::TimeServiceError,
-    transactions::errors::TransactionError, user_repository::errors::UserRepositoryError,
+    user_repository::errors::UserRepositoryError,
 };
 
 #[derive(Debug, Error)]
@@ -24,6 +24,4 @@ pub enum SignUpError {
     KeyPairRepository(#[from] KeyPairRepositoryError),
     #[error("active key pair not found")]
     ActiveKeyPairNotFound,
-    #[error(transparent)]
-    TransactionError(#[from] TransactionError),
 }
