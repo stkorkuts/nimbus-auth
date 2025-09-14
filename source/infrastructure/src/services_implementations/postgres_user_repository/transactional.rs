@@ -204,18 +204,31 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                 id: id.to_string(),
                 get_by_id_result_sender: result_sender,
             };
-            transaction_execute_sender
-                .send(query_request)
-                .await
-                .map_err(ErrorBoxed::from)?;
+            let result = async {
+                transaction_execute_sender
+                    .send(query_request)
+                    .await
+                    .map_err(ErrorBoxed::from)?;
 
-            let user = result_receiver
-                .await
-                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
-                .map(|user_db| user_db.into_domain())
-                .transpose()?;
+                let user = result_receiver
+                    .await
+                    .map_err(|_| {
+                        ErrorBoxed::from_str("can not get result back via result receiver")
+                    })??
+                    .map(|user_db| user_db.into_domain())
+                    .transpose()?;
 
-            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+                Ok::<Option<User>, UserRepositoryError>(user)
+            }
+            .await;
+
+            match result {
+                Ok(user) => Ok((self as Box<dyn UserRepositoryWithTransaction>, user)),
+                Err(err) => {
+                    self.rollback().await?;
+                    Err(err)
+                }
+            }
         })
     }
 
@@ -232,18 +245,31 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                 user_name,
                 get_by_name_result_sender: result_sender,
             };
-            transaction_execute_sender
-                .send(query_request)
-                .await
-                .map_err(ErrorBoxed::from)?;
+            let result = async {
+                transaction_execute_sender
+                    .send(query_request)
+                    .await
+                    .map_err(ErrorBoxed::from)?;
 
-            let user = result_receiver
-                .await
-                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
-                .map(|user_db| user_db.into_domain())
-                .transpose()?;
+                let user = result_receiver
+                    .await
+                    .map_err(|_| {
+                        ErrorBoxed::from_str("can not get result back via result receiver")
+                    })??
+                    .map(|user_db| user_db.into_domain())
+                    .transpose()?;
 
-            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+                Ok::<Option<User>, UserRepositoryError>(user)
+            }
+            .await;
+
+            match result {
+                Ok(user) => Ok((self as Box<dyn UserRepositoryWithTransaction>, user)),
+                Err(err) => {
+                    self.rollback().await?;
+                    Err(err)
+                }
+            }
         })
     }
 
@@ -260,17 +286,31 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                 session_id,
                 get_by_name_result_sender: result_sender,
             };
-            transaction_execute_sender
-                .send(query_request)
-                .await
-                .map_err(ErrorBoxed::from)?;
+            let result = async {
+                transaction_execute_sender
+                    .send(query_request)
+                    .await
+                    .map_err(ErrorBoxed::from)?;
 
-            let user = result_receiver
-                .await
-                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
-                .map(|user_db| user_db.into_domain())
-                .transpose()?;
-            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+                let user = result_receiver
+                    .await
+                    .map_err(|_| {
+                        ErrorBoxed::from_str("can not get result back via result receiver")
+                    })??
+                    .map(|user_db| user_db.into_domain())
+                    .transpose()?;
+
+                Ok::<Option<User>, UserRepositoryError>(user)
+            }
+            .await;
+
+            match result {
+                Ok(user) => Ok((self as Box<dyn UserRepositoryWithTransaction>, user)),
+                Err(err) => {
+                    self.rollback().await?;
+                    Err(err)
+                }
+            }
         })
     }
 
@@ -287,16 +327,27 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                 save_result_sender: result_sender,
             };
 
-            transaction_execute_sender
-                .send(query_request)
-                .await
-                .map_err(ErrorBoxed::from)?;
+            let result = async {
+                transaction_execute_sender
+                    .send(query_request)
+                    .await
+                    .map_err(ErrorBoxed::from)?;
 
-            let result = result_receiver.await.map_err(|_| {
-                ErrorBoxed::from_str("can not get result back via result receiver")
-            })??;
+                let unit = result_receiver.await.map_err(|_| {
+                    ErrorBoxed::from_str("can not get result back via result receiver")
+                })??;
 
-            Ok((self as Box<dyn UserRepositoryWithTransaction>, result))
+                Ok::<(), UserRepositoryError>(unit)
+            }
+            .await;
+
+            match result {
+                Ok(unit) => Ok((self as Box<dyn UserRepositoryWithTransaction>, unit)),
+                Err(err) => {
+                    self.rollback().await?;
+                    Err(err)
+                }
+            }
         })
     }
 }
