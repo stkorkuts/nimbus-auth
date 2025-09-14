@@ -12,7 +12,9 @@ use crate::services::user_repository::errors::UserRepositoryError;
 
 pub mod errors;
 
-pub trait UserRepositoryQueries: Send + Sync {
+pub trait UserRepository: Send + Sync {
+    fn start_transaction(&self)
+    -> PinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed>;
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
@@ -25,12 +27,23 @@ pub trait UserRepositoryQueries: Send + Sync {
     fn save(&self, user: &User) -> PinnedFuture<(), UserRepositoryError>;
 }
 
-pub trait UserRepository: UserRepositoryQueries {
-    fn start_transaction(&self)
-    -> PinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed>;
-}
-
-pub trait UserRepositoryWithTransaction: UserRepositoryQueries {
+pub trait UserRepositoryWithTransaction: Send + Sync {
     fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed>;
     fn rollback(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed>;
+    fn get_by_id(
+        self: Box<Self>,
+        id: Identifier<Ulid, User>,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>;
+    fn get_by_name(
+        self: Box<Self>,
+        user_name: &UserName,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>;
+    fn get_by_session(
+        self: Box<Self>,
+        session: &Session<Active>,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>;
+    fn save(
+        self: Box<Self>,
+        user: &User,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError>;
 }

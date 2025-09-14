@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::services::user_repository::{
-    UserRepository, UserRepositoryQueries, UserRepositoryWithTransaction,
-    errors::UserRepositoryError,
+    UserRepository, UserRepositoryWithTransaction, errors::UserRepositoryError,
 };
 use nimbus_auth_domain::{
     entities::{
@@ -12,7 +11,6 @@ use nimbus_auth_domain::{
     value_objects::identifier::{Identifier, IdentifierOfType},
 };
 use nimbus_auth_shared::{
-    constants::DEFAULT_CHANNEL_BUFFER_SIZE,
     errors::ErrorBoxed,
     futures::{PinnedFuture, pin, pin_error_boxed},
 };
@@ -52,9 +50,7 @@ impl UserRepository for PostgresUserRepository {
             Ok(Box::new(transactional_repo) as Box<dyn UserRepositoryWithTransaction>)
         })
     }
-}
 
-impl UserRepositoryQueries for PostgresUserRepository {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,

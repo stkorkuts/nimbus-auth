@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::services::user_repository::{
-    UserRepositoryQueries, UserRepositoryWithTransaction, errors::UserRepositoryError,
+    UserRepositoryWithTransaction, errors::UserRepositoryError,
 };
 use nimbus_auth_domain::{
     entities::{
@@ -146,146 +146,157 @@ impl PostgresUserRepositoryWithTransaction {
             })
         })
     }
+}
 
-    fn send_to_transaction<T: Send + 'static>(
-        query_request: QueryRequest,
-        transaction_execute_sender: Sender<QueryRequest>,
-        result_receiver: oneshot::Receiver<Result<T, UserRepositoryError>>,
-    ) -> PinnedFuture<T, UserRepositoryError> {
-        pin(async move {
+impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
+    fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
+        let transaction_execute_sender = self.transaction_execute_sender.clone();
+        pin_error_boxed(async move {
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::Commit {
+                commit_result_sender: result_sender,
+            };
             transaction_execute_sender
                 .send(query_request)
                 .await
                 .map_err(ErrorBoxed::from)?;
 
             let result = result_receiver.await.map_err(|_| {
-                ErrorBoxed::from_str("can not send result back to result receiver")
+                ErrorBoxed::from_str("can not get result back via result receiver")
             })??;
 
-            Ok(result)
-        })
-    }
-}
-
-impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
-    fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::Commit {
-            commit_result_sender: result_sender,
-        };
-        let transaction_execute_sender = self.transaction_execute_sender.clone();
-        pin_error_boxed(async move {
-            PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?;
-
             self.transaction_task_handle.await??;
-            Ok(())
+            Ok(result)
         })
     }
 
     fn rollback(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::Rollback {
-            rollback_result_sender: result_sender,
-        };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin_error_boxed(async move {
-            PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?;
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::Rollback {
+                rollback_result_sender: result_sender,
+            };
+            transaction_execute_sender
+                .send(query_request)
+                .await
+                .map_err(ErrorBoxed::from)?;
+
+            let result = result_receiver.await.map_err(|_| {
+                ErrorBoxed::from_str("can not get result back via result receiver")
+            })??;
 
             self.transaction_task_handle.await??;
 
-            Ok(())
+            Ok(result)
         })
     }
-}
 
-impl UserRepositoryQueries for PostgresUserRepositoryWithTransaction {
     fn get_by_id(
-        &self,
+        self: Box<Self>,
         id: Identifier<Ulid, User>,
-    ) -> PinnedFuture<Option<User>, UserRepositoryError> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::GetById {
-            id: id.to_string(),
-            get_by_id_result_sender: result_sender,
-        };
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
+    {
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin(async move {
-            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?
-            .map(|user_db| user_db.into_domain())
-            .transpose()?)
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::GetById {
+                id: id.to_string(),
+                get_by_id_result_sender: result_sender,
+            };
+            transaction_execute_sender
+                .send(query_request)
+                .await
+                .map_err(ErrorBoxed::from)?;
+
+            let user = result_receiver
+                .await
+                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
+                .map(|user_db| user_db.into_domain())
+                .transpose()?;
+
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
         })
     }
 
-    fn get_by_name(&self, user_name: &UserName) -> PinnedFuture<Option<User>, UserRepositoryError> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::GetByName {
-            user_name: user_name.to_string(),
-            get_by_name_result_sender: result_sender,
-        };
+    fn get_by_name(
+        self: Box<Self>,
+        user_name: &UserName,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
+    {
         let transaction_execute_sender = self.transaction_execute_sender.clone();
+        let user_name = user_name.to_string();
         pin(async move {
-            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?
-            .map(|user_db| user_db.into_domain())
-            .transpose()?)
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::GetByName {
+                user_name,
+                get_by_name_result_sender: result_sender,
+            };
+            transaction_execute_sender
+                .send(query_request)
+                .await
+                .map_err(ErrorBoxed::from)?;
+
+            let user = result_receiver
+                .await
+                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
+                .map(|user_db| user_db.into_domain())
+                .transpose()?;
+
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
         })
     }
 
     fn get_by_session(
-        &self,
+        self: Box<Self>,
         session: &Session<Active>,
-    ) -> PinnedFuture<Option<User>, UserRepositoryError> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::GetBySession {
-            session_id: session.id().to_string(),
-            get_by_name_result_sender: result_sender,
-        };
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
+    {
         let transaction_execute_sender = self.transaction_execute_sender.clone();
+        let session_id = session.id().to_string();
         pin(async move {
-            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?
-            .map(|user_db| user_db.into_domain())
-            .transpose()?)
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::GetBySession {
+                session_id,
+                get_by_name_result_sender: result_sender,
+            };
+            transaction_execute_sender
+                .send(query_request)
+                .await
+                .map_err(ErrorBoxed::from)?;
+
+            let user = result_receiver
+                .await
+                .map_err(|_| ErrorBoxed::from_str("can not get result back via result receiver"))??
+                .map(|user_db| user_db.into_domain())
+                .transpose()?;
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
         })
     }
 
-    fn save(&self, user: &User) -> PinnedFuture<(), UserRepositoryError> {
-        let (result_sender, result_receiver) = oneshot::channel();
-        let query_request = QueryRequest::Save {
-            user: UserDb::from(user),
-            save_result_sender: result_sender,
-        };
+    fn save(
+        self: Box<Self>,
+        user: &User,
+    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
         let transaction_execute_sender = self.transaction_execute_sender.clone();
+        let user_db = UserDb::from(user);
         pin(async move {
-            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
-                query_request,
-                transaction_execute_sender,
-                result_receiver,
-            )
-            .await?)
+            let (result_sender, result_receiver) = oneshot::channel();
+            let query_request = QueryRequest::Save {
+                user: user_db,
+                save_result_sender: result_sender,
+            };
+
+            transaction_execute_sender
+                .send(query_request)
+                .await
+                .map_err(ErrorBoxed::from)?;
+
+            let result = result_receiver.await.map_err(|_| {
+                ErrorBoxed::from_str("can not get result back via result receiver")
+            })??;
+
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, result))
         })
     }
 }
