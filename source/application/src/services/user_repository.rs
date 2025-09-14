@@ -12,7 +12,7 @@ use crate::services::user_repository::errors::UserRepositoryError;
 
 pub mod errors;
 
-pub trait UserRepositoryBase: Send + Sync {
+pub trait UserRepositoryQueries: Send + Sync {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
@@ -25,11 +25,12 @@ pub trait UserRepositoryBase: Send + Sync {
     fn save(&self, user: &User) -> PinnedFuture<(), UserRepositoryError>;
 }
 
-pub trait UserRepository: UserRepositoryBase {
-    fn start_transaction(&self) -> PinnedFuture<Box<dyn TransactionalUserRepository>, ErrorBoxed>;
+pub trait UserRepository: UserRepositoryQueries {
+    fn start_transaction(&self)
+    -> PinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed>;
 }
 
-pub trait TransactionalUserRepository: UserRepositoryBase {
-    fn commit(self) -> PinnedFuture<(), ErrorBoxed>;
-    fn rollback(self) -> PinnedFuture<(), ErrorBoxed>;
+pub trait UserRepositoryWithTransaction: UserRepositoryQueries {
+    fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed>;
+    fn rollback(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed>;
 }

@@ -1,6 +1,7 @@
 use nimbus_auth_domain::entities::user::value_objects::{
     name::errors::UserNameError, password::errors::PasswordError,
 };
+use nimbus_auth_shared::errors::ErrorBoxed;
 use thiserror::Error;
 
 use crate::services::{
@@ -24,4 +25,6 @@ pub enum SignUpError {
     KeyPairRepository(#[from] KeyPairRepositoryError),
     #[error("active key pair not found")]
     ActiveKeyPairNotFound,
+    #[error(transparent)]
+    Other(#[from] ErrorBoxed),
 }

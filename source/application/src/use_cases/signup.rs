@@ -45,33 +45,55 @@ pub async fn handle_signup<'a>(
 ) -> Result<SignUpResponse, SignUpError> {
     todo!();
 
-    // let user_name = UserName::from(user_name)?;
+    let user_name = UserName::from(user_name)?;
 
-    // let existing_user = user_repository.get_by_name(&user_name, None).await?;
+    let existing_user = user_repository.get_by_name(&user_name).await?;
 
-    // if let Some(user) = existing_user {
-    //     return Err(SignUpError::UserAlreadyExists {
-    //         user_name: user.name().to_string(),
-    //     });
-    // }
+    if let Some(user) = existing_user {
+        return Err(SignUpError::UserAlreadyExists {
+            user_name: user.name().to_string(),
+        });
+    }
 
-    // let password = Password::from(password)?;
+    let password = Password::from(password)?;
 
-    // let active_keypair = keypair_repository
-    //     .get_active(None)
-    //     .await?
-    //     .ok_or(SignUpError::ActiveKeyPairNotFound)?;
+    let active_keypair = keypair_repository
+        .get_active()
+        .await?
+        .ok_or(SignUpError::ActiveKeyPairNotFound)?;
 
-    // let user = Arc::new(User::new(NewUserSpecification {
-    //     user_name,
-    //     password,
-    // }));
+    let user = User::new(NewUserSpecification {
+        user_name,
+        password,
+    });
 
-    // let session = Arc::new(Session::new(NewSessionSpecification {
-    //     user_id: user.id().clone(),
-    //     current_time: time_service.get_current_time().await?,
-    //     expiration_seconds: session_exp_seconds,
-    // }));
+    let session = Session::new(NewSessionSpecification {
+        user_id: user.id().clone(),
+        current_time: time_service.get_current_time().await?,
+        expiration_seconds: session_exp_seconds,
+    });
+
+    let mut transactional_user_repository = user_repository.start_transaction().await?;
+    // start session transaction here
+    match async {
+        transactional_user_repository.save(&user).await?;
+        Ok(())
+    }
+    .await
+    {
+        Ok(signed_access_token) => {
+            transactional_user_repository.commit().await?;
+            Ok(SignUpResponse {
+                user: UserDto::from(&user),
+                session_id: session.id().to_string(),
+                signed_access_token: todo!(),
+            })
+        }
+        Err(err) => {
+            transactional_user_repository.rollback().await?;
+            Err(err)
+        }
+    }
 
     // let mut user_repo_transaction = user_repository
     //     .start_transaction(

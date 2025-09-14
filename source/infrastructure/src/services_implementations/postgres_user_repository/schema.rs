@@ -11,8 +11,10 @@ use nimbus_auth_domain::{
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::errors::ErrorBoxed;
+use sqlx::prelude::FromRow;
 use ulid::Ulid;
 
+#[derive(FromRow)]
 pub struct UserDb {
     pub id: String,
     pub user_name: String,

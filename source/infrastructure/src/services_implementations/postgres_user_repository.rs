@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::services::user_repository::{
-    TransactionalUserRepository, UserRepository, UserRepositoryBase, errors::UserRepositoryError,
+    UserRepository, UserRepositoryQueries, UserRepositoryWithTransaction,
+    errors::UserRepositoryError,
 };
 use nimbus_auth_domain::{
     entities::{
@@ -22,10 +23,12 @@ use ulid::Ulid;
 use crate::{
     postgres_db::PostgresDatabase,
     services_implementations::postgres_user_repository::{
-        schema::UserDb, transactional::TransactionalPostgresUserRepository,
+        queries::get_user_by_id, schema::UserDb,
+        transactional::PostgresUserRepositoryWithTransaction,
     },
 };
 
+mod queries;
 mod schema;
 mod transactional;
 
@@ -40,21 +43,30 @@ impl PostgresUserRepository {
 }
 
 impl UserRepository for PostgresUserRepository {
-    fn start_transaction(&self) -> PinnedFuture<Box<dyn TransactionalUserRepository>, ErrorBoxed> {
+    fn start_transaction(
+        &self,
+    ) -> PinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed> {
         let db_cloned = self.database.clone();
         pin_error_boxed(async move {
-            let transactional_repo = TransactionalPostgresUserRepository::init(db_cloned).await?;
-            Ok(Box::new(transactional_repo) as Box<dyn TransactionalUserRepository>)
+            let transactional_repo = PostgresUserRepositoryWithTransaction::init(db_cloned).await?;
+            Ok(Box::new(transactional_repo) as Box<dyn UserRepositoryWithTransaction>)
         })
     }
 }
 
-impl UserRepositoryBase for PostgresUserRepository {
+impl UserRepositoryQueries for PostgresUserRepository {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
     ) -> PinnedFuture<Option<User>, UserRepositoryError> {
-        todo!()
+        let db_clone = self.database.clone();
+        pin(async move {
+            let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
+            Ok(get_user_by_id(&mut *connection, &id.to_string())
+                .await?
+                .map(|user_db| user_db.into_domain())
+                .transpose()?)
+        })
     }
 
     fn get_by_name(&self, user_name: &UserName) -> PinnedFuture<Option<User>, UserRepositoryError> {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::services::user_repository::{
-    TransactionalUserRepository, UserRepositoryBase, errors::UserRepositoryError,
+    UserRepositoryQueries, UserRepositoryWithTransaction, errors::UserRepositoryError,
 };
 use nimbus_auth_domain::{
     entities::{
@@ -34,7 +34,7 @@ use ulid::Ulid;
 
 use crate::{
     postgres_db::PostgresDatabase,
-    services_implementations::postgres_user_repository::schema::UserDb,
+    services_implementations::postgres_user_repository::{queries::get_user_by_id, schema::UserDb},
 };
 
 enum QueryRequest {
@@ -62,12 +62,12 @@ enum QueryRequest {
     },
 }
 
-pub struct TransactionalPostgresUserRepository {
+pub struct PostgresUserRepositoryWithTransaction {
     transaction_execute_sender: Sender<QueryRequest>,
     transaction_task_handle: JoinHandle<Result<(), ErrorBoxed>>,
 }
 
-impl TransactionalPostgresUserRepository {
+impl PostgresUserRepositoryWithTransaction {
     pub fn init(database: Arc<PostgresDatabase>) -> PinnedFuture<Self, ErrorBoxed> {
         let (tx_start_sender, tx_start_receiver) = oneshot::channel();
         let (tx_execute_sender, mut tx_execute_receiver) =
@@ -82,7 +82,7 @@ impl TransactionalPostgresUserRepository {
                     });
                 }
             };
-            let transaction = match connection.begin().await.map_err(ErrorBoxed::from) {
+            let mut transaction = match connection.begin().await.map_err(ErrorBoxed::from) {
                 Ok(transaction) => transaction,
                 Err(err) => {
                     return tx_start_sender.send(Err(err)).map_err(|_| {
@@ -94,6 +94,7 @@ impl TransactionalPostgresUserRepository {
                 .send(Ok(()))
                 .map_err(|_| ErrorBoxed::from_str("can not send a message via tx_start_sender"))?;
 
+            // do transaction rollback on error
             while let Some(query_request) = tx_execute_receiver.recv().await {
                 match query_request {
                     QueryRequest::Commit {
@@ -103,9 +104,7 @@ impl TransactionalPostgresUserRepository {
                         return Ok(commit_result_sender
                             .send(commit_result.map_err(UserRepositoryError::from))
                             .map_err(|_| {
-                                ErrorBoxed::from_str(
-                                    "can not send commit result back to transaction",
-                                )
+                                ErrorBoxed::from_str("can not send commit result back via sender")
                             })?);
                     }
                     QueryRequest::Rollback {
@@ -116,10 +115,17 @@ impl TransactionalPostgresUserRepository {
                         return Ok(rollback_result_sender
                             .send(rollback_result.map_err(UserRepositoryError::from))
                             .map_err(|_| {
-                                ErrorBoxed::from_str(
-                                    "can not send rollback result back to transaction",
-                                )
+                                ErrorBoxed::from_str("can not send rollback result back via sender")
                             })?);
+                    }
+                    QueryRequest::GetById {
+                        id,
+                        get_by_id_result_sender,
+                    } => {
+                        let query_result = get_user_by_id(&mut *transaction, &id).await;
+                        get_by_id_result_sender.send(query_result).map_err(|_| {
+                            ErrorBoxed::from_str("can not send result back via sender")
+                        })?;
                     }
                     _ => todo!(),
                 }
@@ -134,7 +140,7 @@ impl TransactionalPostgresUserRepository {
         pin_error_boxed(async move {
             tx_start_receiver.await.map_err(ErrorBoxed::from)??;
 
-            Ok(TransactionalPostgresUserRepository {
+            Ok(PostgresUserRepositoryWithTransaction {
                 transaction_task_handle,
                 transaction_execute_sender: tx_execute_sender,
             })
@@ -161,15 +167,15 @@ impl TransactionalPostgresUserRepository {
     }
 }
 
-impl TransactionalUserRepository for TransactionalPostgresUserRepository {
-    fn commit(self) -> PinnedFuture<(), ErrorBoxed> {
+impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
+    fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
         let (result_sender, result_receiver) = oneshot::channel();
         let query_request = QueryRequest::Commit {
             commit_result_sender: result_sender,
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin_error_boxed(async move {
-            TransactionalPostgresUserRepository::send_to_transaction(
+            PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
@@ -181,14 +187,14 @@ impl TransactionalUserRepository for TransactionalPostgresUserRepository {
         })
     }
 
-    fn rollback(self) -> PinnedFuture<(), ErrorBoxed> {
+    fn rollback(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
         let (result_sender, result_receiver) = oneshot::channel();
         let query_request = QueryRequest::Rollback {
             rollback_result_sender: result_sender,
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin_error_boxed(async move {
-            TransactionalPostgresUserRepository::send_to_transaction(
+            PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
@@ -202,7 +208,7 @@ impl TransactionalUserRepository for TransactionalPostgresUserRepository {
     }
 }
 
-impl UserRepositoryBase for TransactionalPostgresUserRepository {
+impl UserRepositoryQueries for PostgresUserRepositoryWithTransaction {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
@@ -214,7 +220,7 @@ impl UserRepositoryBase for TransactionalPostgresUserRepository {
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin(async move {
-            Ok(TransactionalPostgresUserRepository::send_to_transaction(
+            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
@@ -233,7 +239,7 @@ impl UserRepositoryBase for TransactionalPostgresUserRepository {
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin(async move {
-            Ok(TransactionalPostgresUserRepository::send_to_transaction(
+            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
@@ -255,7 +261,7 @@ impl UserRepositoryBase for TransactionalPostgresUserRepository {
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin(async move {
-            Ok(TransactionalPostgresUserRepository::send_to_transaction(
+            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
@@ -274,7 +280,7 @@ impl UserRepositoryBase for TransactionalPostgresUserRepository {
         };
         let transaction_execute_sender = self.transaction_execute_sender.clone();
         pin(async move {
-            Ok(TransactionalPostgresUserRepository::send_to_transaction(
+            Ok(PostgresUserRepositoryWithTransaction::send_to_transaction(
                 query_request,
                 transaction_execute_sender,
                 result_receiver,
