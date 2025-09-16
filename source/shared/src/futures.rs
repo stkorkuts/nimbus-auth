@@ -2,16 +2,18 @@ use std::{error::Error, pin::Pin};
 
 use crate::errors::ErrorBoxed;
 
-pub type PinnedFuture<T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'static>>;
+pub type PinnedFuture<'a, T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>;
 
-pub fn pin<T, E: Error + Send + Sync>(
+pub type StaticPinnedFuture<T, E> = PinnedFuture<'static, T, E>;
+
+pub fn pin_future<T, E: Error + Send + Sync>(
     fut: impl Future<Output = Result<T, E>> + Send + 'static,
-) -> PinnedFuture<T, E> {
+) -> StaticPinnedFuture<T, E> {
     Box::pin(fut)
 }
 
-pub fn pin_error_boxed<T>(
+pub fn pin_future_error_boxed<T>(
     fut: impl Future<Output = Result<T, ErrorBoxed>> + Send + 'static,
-) -> PinnedFuture<T, ErrorBoxed> {
+) -> StaticPinnedFuture<T, ErrorBoxed> {
     Box::pin(fut)
 }

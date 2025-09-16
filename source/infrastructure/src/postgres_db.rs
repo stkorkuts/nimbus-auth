@@ -1,9 +1,8 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use nimbus_auth_shared::{
-    config::AppConfig,
-    constants::DEFAULT_CHANNEL_BUFFER_SIZE,
-    errors::ErrorBoxed,
+    config::AppConfig, constants::DEFAULT_CHANNEL_BUFFER_SIZE, errors::ErrorBoxed,
+    futures::PinnedFuture,
 };
 use sqlx::{Acquire, PgConnection, PgPool, postgres::PgPoolOptions};
 use tokio::{
@@ -55,19 +54,15 @@ impl PostgresDatabase {
         &self.pool
     }
 
-    pub async fn start_transaction<TRequest: Send + Sync + 'static, F>(
-        self: Arc<Self>,
-        on_query_callback: F,
-    ) -> Result<PostgresTransaction<TRequest>, ErrorBoxed>
-    where
-        F: for<'a> Fn(
-                &'a mut PgConnection,
-                TRequest,
-            )
-                -> Pin<Box<dyn Future<Output = Result<(), ErrorBoxed>> + Send + 'a>>
+    pub async fn start_transaction<
+        TRequest: Send + Sync + 'static,
+        F: for<'a> Fn(&'a mut PgConnection, TRequest) -> PinnedFuture<'a, (), ErrorBoxed>
             + Send
             + 'static,
-    {
+    >(
+        self: Arc<Self>,
+        on_query_callback: F,
+    ) -> Result<PostgresTransaction<TRequest>, ErrorBoxed> {
         let (tx_start_sender, tx_start_receiver) = oneshot::channel();
         let (tx_execute_sender, mut tx_execute_receiver) =
             mpsc::channel::<PostgresTransactionRequest<TRequest>>(DEFAULT_CHANNEL_BUFFER_SIZE);

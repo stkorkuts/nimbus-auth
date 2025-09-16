@@ -13,7 +13,7 @@ use nimbus_auth_domain::{
 };
 use nimbus_auth_shared::{
     errors::ErrorBoxed,
-    futures::{PinnedFuture, pin, pin_error_boxed},
+    futures::{StaticPinnedFuture, pin_future, pin_future_error_boxed},
 };
 use sqlx::{Acquire, PgConnection};
 use tokio::sync::oneshot;
@@ -66,9 +66,9 @@ impl PostgresUserRepository {
 impl UserRepository for PostgresUserRepository {
     fn start_transaction(
         &self,
-    ) -> PinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed> {
+    ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed> {
         let db_cloned = self.database.clone();
-        pin_error_boxed(async move {
+        pin_future_error_boxed(async move {
             let transactional_repo = PostgresUserRepositoryWithTransaction::init(db_cloned).await?;
             Ok(Box::new(transactional_repo) as Box<dyn UserRepositoryWithTransaction>)
         })
@@ -77,10 +77,10 @@ impl UserRepository for PostgresUserRepository {
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
-    ) -> PinnedFuture<Option<User>, UserRepositoryError> {
+    ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let id = id.to_string();
-        pin(async move {
+        pin_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &id)
                 .await?
@@ -89,10 +89,13 @@ impl UserRepository for PostgresUserRepository {
         })
     }
 
-    fn get_by_name(&self, user_name: &UserName) -> PinnedFuture<Option<User>, UserRepositoryError> {
+    fn get_by_name(
+        &self,
+        user_name: &UserName,
+    ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let user_name = user_name.to_string();
-        pin(async move {
+        pin_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_name(&mut *connection, &user_name)
                 .await?
@@ -104,10 +107,10 @@ impl UserRepository for PostgresUserRepository {
     fn get_by_session(
         &self,
         session: &Session<Active>,
-    ) -> PinnedFuture<Option<User>, UserRepositoryError> {
+    ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let session_id = session.id().to_string();
-        pin(async move {
+        pin_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &session_id)
                 .await?
@@ -116,10 +119,10 @@ impl UserRepository for PostgresUserRepository {
         })
     }
 
-    fn save(&self, user: &User) -> PinnedFuture<(), UserRepositoryError> {
+    fn save(&self, user: &User) -> StaticPinnedFuture<(), UserRepositoryError> {
         let db_clone = self.database.clone();
         let user = UserDb::from(user);
-        pin(async move {
+        pin_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             save_user(&mut *connection, &user).await
         })
@@ -157,21 +160,23 @@ impl PostgresUserRepositoryWithTransaction {
 }
 
 impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
-    fn commit(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
-        pin_error_boxed(async move { self.transaction.commit().await })
+    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed> {
+        pin_future_error_boxed(async move { self.transaction.commit().await })
     }
 
-    fn rollback(self: Box<Self>) -> PinnedFuture<(), ErrorBoxed> {
-        pin_error_boxed(async move { self.transaction.rollback().await })
+    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed> {
+        pin_future_error_boxed(async move { self.transaction.rollback().await })
     }
 
     fn get_by_id(
         self: Box<Self>,
         id: Identifier<Ulid, User>,
-    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
-    {
+    ) -> StaticPinnedFuture<
+        (Box<dyn UserRepositoryWithTransaction>, Option<User>),
+        UserRepositoryError,
+    > {
         let id = id.to_string();
-        pin(async move {
+        pin_future(async move {
             let result = self
                 .transaction
                 .execute::<Option<UserDb>>(Box::new(|tx| {
@@ -199,10 +204,12 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
     fn get_by_name(
         self: Box<Self>,
         user_name: &UserName,
-    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
-    {
+    ) -> StaticPinnedFuture<
+        (Box<dyn UserRepositoryWithTransaction>, Option<User>),
+        UserRepositoryError,
+    > {
         let name = user_name.to_string();
-        pin(async move {
+        pin_future(async move {
             let result = self
                 .transaction
                 .execute::<Option<UserDb>>(Box::new(|tx| {
@@ -230,10 +237,12 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
     fn get_by_session(
         self: Box<Self>,
         session: &Session<Active>,
-    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, Option<User>), UserRepositoryError>
-    {
+    ) -> StaticPinnedFuture<
+        (Box<dyn UserRepositoryWithTransaction>, Option<User>),
+        UserRepositoryError,
+    > {
         let sid = session.id().to_string();
-        pin(async move {
+        pin_future(async move {
             let result = self
                 .transaction
                 .execute::<Option<UserDb>>(Box::new(|tx| {
@@ -261,9 +270,9 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
     fn save(
         self: Box<Self>,
         user: &User,
-    ) -> PinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
+    ) -> StaticPinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
         let user_db = UserDb::from(user);
-        pin(async move {
+        pin_future(async move {
             let result = self
                 .transaction
                 .execute::<()>(Box::new(|tx| UserRepositoryTransactionQueryRequest::Save {

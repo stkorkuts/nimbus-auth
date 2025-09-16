@@ -5,14 +5,14 @@ use ed25519_dalek::{
 use nimbus_auth_application::services::random_service::{
     RandomService, errors::RandomServiceError,
 };
-use nimbus_auth_shared::futures::{PinnedFuture, pin};
+use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_future};
 use rand::rngs::OsRng;
 
 pub struct OsRandomService {}
 
 impl RandomService for OsRandomService {
-    fn get_random_private_key_pem(&self) -> PinnedFuture<String, RandomServiceError> {
-        pin(async {
+    fn get_random_private_key_pem(&self) -> StaticPinnedFuture<String, RandomServiceError> {
+        pin_future(async {
             let mut rng = OsRng;
             let signing_key = SigningKey::generate(&mut rng);
             Ok(signing_key
