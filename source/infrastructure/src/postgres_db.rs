@@ -9,20 +9,35 @@ use nimbus_auth_shared::{
 use sqlx::{Acquire, PgConnection, PgPool, Postgres, Transaction, postgres::PgPoolOptions};
 use tokio::{
     spawn,
-    sync::{mpsc, oneshot},
+    sync::{
+        mpsc::{self, Sender},
+        oneshot,
+    },
     task::JoinHandle,
 };
 
-use crate::postgres_db::{
-    errors::PostgresDatabaseError,
-    transactions::{PostgresTransaction, PostgresTransactionRequest},
-};
+use crate::postgres_db::errors::PostgresDatabaseError;
 
 pub mod errors;
-pub mod transactions;
 
 pub struct PostgresDatabase {
     pool: PgPool,
+}
+
+#[must_use = "Transaction must be committed or rolled back before being dropped"]
+pub struct PostgresTransaction<TRequest> {
+    transaction_handle: JoinHandle<Result<(), ErrorBoxed>>,
+    execute_sender: Sender<PostgresTransactionRequest<TRequest>>,
+}
+
+pub enum PostgresTransactionRequest<TRequest> {
+    Query(TRequest),
+    Commit {
+        result_sender: oneshot::Sender<Result<(), ErrorBoxed>>,
+    },
+    Rollback {
+        result_sender: oneshot::Sender<Result<(), ErrorBoxed>>,
+    },
 }
 
 impl PostgresDatabase {
@@ -79,25 +94,20 @@ impl PostgresDatabase {
                 .send(Ok(()))
                 .map_err(|_| ErrorBoxed::from_str("can not send a message via tx_start_sender"))?;
 
-            // do transaction rollback on error
             while let Some(request) = tx_execute_receiver.recv().await {
                 match request {
                     PostgresTransactionRequest::Commit { result_sender } => {
                         let commit_result = transaction.commit().await.map_err(ErrorBoxed::from);
-                        return Ok(result_sender
-                            .send(commit_result.map_err(ErrorBoxed::from))
-                            .map_err(|_| {
-                                ErrorBoxed::from_str("can not send commit result back via sender")
-                            })?);
+                        return Ok(result_sender.send(commit_result).map_err(|_| {
+                            ErrorBoxed::from_str("can not send commit result back via sender")
+                        })?);
                     }
                     PostgresTransactionRequest::Rollback { result_sender } => {
                         let rollback_result =
                             transaction.rollback().await.map_err(ErrorBoxed::from);
-                        return Ok(result_sender
-                            .send(rollback_result.map_err(ErrorBoxed::from))
-                            .map_err(|_| {
-                                ErrorBoxed::from_str("can not send rollback result back via sender")
-                            })?);
+                        return Ok(result_sender.send(rollback_result).map_err(|_| {
+                            ErrorBoxed::from_str("can not send rollback result back via sender")
+                        })?);
                     }
                     PostgresTransactionRequest::Query(request) => {
                         on_query_callback(&mut *transaction, request).await?
@@ -118,5 +128,71 @@ impl PostgresDatabase {
             transaction_task_handle,
             tx_execute_sender,
         ))
+    }
+}
+
+impl<TRequest: Send + Sync + 'static> PostgresTransaction<TRequest> {
+    pub fn new(
+        transaction_handle: JoinHandle<Result<(), ErrorBoxed>>,
+        execute_sender: Sender<PostgresTransactionRequest<TRequest>>,
+    ) -> Self {
+        Self {
+            transaction_handle,
+            execute_sender,
+        }
+    }
+
+    pub async fn rollback(self) -> Result<(), ErrorBoxed> {
+        let (result_sender, result_receiver) = oneshot::channel();
+        self.execute_sender
+            .send(PostgresTransactionRequest::Rollback { result_sender })
+            .await
+            .map_err(ErrorBoxed::from)?;
+        result_receiver.await.map_err(ErrorBoxed::from)??;
+        self.transaction_handle.await?
+    }
+
+    pub async fn commit(self) -> Result<(), ErrorBoxed> {
+        let (result_sender, result_receiver) = oneshot::channel();
+        self.execute_sender
+            .send(PostgresTransactionRequest::Commit { result_sender })
+            .await
+            .map_err(ErrorBoxed::from)?;
+        result_receiver.await.map_err(ErrorBoxed::from)??;
+        self.transaction_handle.await?
+    }
+
+    pub async fn execute<TResponse>(
+        self,
+        build_request: Box<
+            dyn FnOnce(oneshot::Sender<Result<TResponse, ErrorBoxed>>) -> TRequest
+                + Send
+                + Sync
+                + 'static,
+        >,
+    ) -> Result<(Self, TResponse), ErrorBoxed> {
+        let (result_sender, result_receiver) = oneshot::channel();
+
+        let request = build_request(result_sender);
+
+        if let Err(err) = self
+            .execute_sender
+            .send(PostgresTransactionRequest::Query(request))
+            .await
+        {
+            self.rollback().await?;
+            return Err(ErrorBoxed::from(err));
+        }
+
+        match result_receiver.await {
+            Ok(res) => res,
+            Err(_) => {
+                self.rollback().await?;
+                return Err(ErrorBoxed::from_str(
+                    "can not get result back via result receiver",
+                ));
+            }
+        }
+        .map(|val| (self, val))
     }
 }

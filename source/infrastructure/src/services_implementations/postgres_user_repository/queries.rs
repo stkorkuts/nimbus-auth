@@ -18,3 +18,30 @@ where
             .map_err(ErrorBoxed::from)?,
     )
 }
+
+pub async fn get_user_by_name<'a, E>(
+    executor: &'a mut E,
+    name: &str,
+) -> Result<Option<UserDb>, UserRepositoryError>
+where
+    &'a mut E: sqlx::Executor<'a, Database = sqlx::Postgres>,
+{
+    todo!()
+}
+
+pub async fn get_user_by_session<'a, E>(
+    executor: &'a mut E,
+    session_id: &str,
+) -> Result<Option<UserDb>, UserRepositoryError>
+where
+    &'a mut E: sqlx::Executor<'a, Database = sqlx::Postgres>,
+{
+    todo!()
+}
+
+pub async fn save_user<'a, E>(executor: &'a mut E, user: &UserDb) -> Result<(), UserRepositoryError>
+where
+    &'a mut E: sqlx::Executor<'a, Database = sqlx::Postgres>,
+{
+    todo!()
+}
