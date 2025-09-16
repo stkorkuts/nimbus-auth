@@ -13,10 +13,7 @@ use nimbus_auth_domain::{
 };
 use nimbus_auth_shared::{
     errors::ErrorBoxed,
-    futures::{
-        StaticPinnedFuture, pin_future, pin_future_error_boxed, pin_static_future,
-        pin_static_future_error_boxed,
-    },
+    futures::{StaticPinnedFuture, pin_future, pin_static_future, pin_static_future_error_boxed},
 };
 use sqlx::PgConnection;
 use ulid::Ulid;
@@ -65,9 +62,9 @@ impl PostgresUserRepository {
 impl UserRepository for PostgresUserRepository {
     fn start_transaction(
         &self,
-    ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed> {
+    ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, UserRepositoryError> {
         let db_cloned = self.database.clone();
-        pin_static_future_error_boxed(async move {
+        pin_static_future(async move {
             let transactional_repo = PostgresUserRepositoryWithTransaction::init(db_cloned).await?;
             Ok(Box::new(transactional_repo) as Box<dyn UserRepositoryWithTransaction>)
         })
@@ -129,7 +126,7 @@ impl UserRepository for PostgresUserRepository {
 }
 
 impl PostgresUserRepositoryWithTransaction {
-    pub async fn init(database: Arc<PostgresDatabase>) -> Result<Self, ErrorBoxed> {
+    pub async fn init(database: Arc<PostgresDatabase>) -> Result<Self, UserRepositoryError> {
         let transaction = database
             .start_transaction(|conn, req| pin_future(Self::handle_request(conn, req)))
             .await?;

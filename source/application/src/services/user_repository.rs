@@ -5,7 +5,7 @@ use nimbus_auth_domain::{
     },
     value_objects::identifier::Identifier,
 };
-use nimbus_auth_shared::{errors::ErrorBoxed, futures::StaticPinnedFuture};
+use nimbus_auth_shared::futures::StaticPinnedFuture;
 use ulid::Ulid;
 
 use crate::services::user_repository::errors::UserRepositoryError;
@@ -15,7 +15,7 @@ pub mod errors;
 pub trait UserRepository: Send + Sync {
     fn start_transaction(
         &self,
-    ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed>;
+    ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, UserRepositoryError>;
     fn get_by_id(
         &self,
         id: Identifier<Ulid, User>,
