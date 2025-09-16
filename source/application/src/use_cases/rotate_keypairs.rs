@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use nimbus_auth_domain::entities::keypair::{
-    InitializedKeyPair, KeyPair, Uninitialized, specifications::NewKeyPairSpecification,
-    value_objects::KeyPairValue,
-};
 use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
 
 use crate::{

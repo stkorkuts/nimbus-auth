@@ -4,7 +4,7 @@ use nimbus_auth_domain::{
     entities::{
         Entity,
         session::{
-            InitializedSession, InitializedSessionRef, Session,
+            Session,
             specifications::NewSessionSpecification,
         },
         user::{
@@ -15,10 +15,7 @@ use nimbus_auth_domain::{
     },
     value_objects::identifier::IdentifierOfType,
 };
-use nimbus_auth_shared::{
-    errors::ErrorBoxed,
-    types::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
-};
+use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
 use crate::{
     services::{

@@ -1,17 +1,6 @@
 use std::sync::Arc;
 
-use nimbus_auth_domain::{
-    entities::{
-        Entity,
-        session::{Active, InitializedSession, InitializedSessionRef, Session},
-    },
-    value_objects::identifier::{Identifier, IdentifierOfType},
-};
-use nimbus_auth_shared::{
-    errors::ErrorBoxed,
-    types::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
-};
-use ulid::Ulid;
+use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
 use crate::{
     services::{
@@ -19,9 +8,8 @@ use crate::{
         time_service::TimeService, user_repository::UserRepository,
     },
     use_cases::{
-        RefreshRequest, RefreshResponse, UserDto,
-        refresh::{self, errors::RefreshError},
-        signup::errors::SignUpError,
+        RefreshRequest, RefreshResponse,
+        refresh::errors::RefreshError,
     },
 };
 
