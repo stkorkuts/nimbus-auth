@@ -32,8 +32,8 @@ pub trait UserRepository: Send + Sync {
 }
 
 pub trait UserRepositoryWithTransaction: Send + Sync {
-    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed>;
-    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed>;
+    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError>;
+    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError>;
     fn get_by_id(
         self: Box<Self>,
         id: Identifier<Ulid, User>,

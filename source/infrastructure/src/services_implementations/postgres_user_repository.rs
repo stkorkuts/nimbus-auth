@@ -9,20 +9,22 @@ use nimbus_auth_domain::{
         session::{Active, Session},
         user::{User, value_objects::name::UserName},
     },
-    value_objects::identifier::{Identifier, IdentifierOfType},
+    value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::{
     errors::ErrorBoxed,
-    futures::{StaticPinnedFuture, pin_future, pin_future_error_boxed},
+    futures::{
+        StaticPinnedFuture, pin_future, pin_future_error_boxed, pin_static_future,
+        pin_static_future_error_boxed,
+    },
 };
-use sqlx::{Acquire, PgConnection};
-use tokio::sync::oneshot;
+use sqlx::PgConnection;
 use ulid::Ulid;
 
 use crate::{
     postgres_db::{PostgresDatabase, PostgresTransaction},
     services_implementations::postgres_user_repository::{
-        queries::{get_user_by_id, get_user_by_name, save_user},
+        queries::{get_user_by_id, get_user_by_name, get_user_by_session, save_user},
         schema::UserDb,
     },
 };
@@ -35,26 +37,23 @@ pub struct PostgresUserRepository {
 }
 
 enum UserRepositoryTransactionQueryRequest {
-    GetById {
-        id: String,
-        get_by_id_result_sender: oneshot::Sender<Result<Option<UserDb>, ErrorBoxed>>,
-    },
-    GetByName {
-        user_name: String,
-        get_by_name_result_sender: oneshot::Sender<Result<Option<UserDb>, ErrorBoxed>>,
-    },
-    GetBySession {
-        session_id: String,
-        get_by_session_result_sender: oneshot::Sender<Result<Option<UserDb>, ErrorBoxed>>,
-    },
-    Save {
-        user: UserDb,
-        save_result_sender: oneshot::Sender<Result<(), ErrorBoxed>>,
-    },
+    GetById { id: String },
+    GetByName { user_name: String },
+    GetBySession { session_id: String },
+    Save { user: UserDb },
+}
+
+enum UserRepositoryTransactionQueryResponse {
+    OptionalUser { user: Option<UserDb> },
+    UserSaved,
 }
 
 pub struct PostgresUserRepositoryWithTransaction {
-    transaction: PostgresTransaction<UserRepositoryTransactionQueryRequest>,
+    transaction: PostgresTransaction<
+        UserRepositoryTransactionQueryRequest,
+        UserRepositoryTransactionQueryResponse,
+        UserRepositoryError,
+    >,
 }
 
 impl PostgresUserRepository {
@@ -68,7 +67,7 @@ impl UserRepository for PostgresUserRepository {
         &self,
     ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, ErrorBoxed> {
         let db_cloned = self.database.clone();
-        pin_future_error_boxed(async move {
+        pin_static_future_error_boxed(async move {
             let transactional_repo = PostgresUserRepositoryWithTransaction::init(db_cloned).await?;
             Ok(Box::new(transactional_repo) as Box<dyn UserRepositoryWithTransaction>)
         })
@@ -80,7 +79,7 @@ impl UserRepository for PostgresUserRepository {
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let id = id.to_string();
-        pin_future(async move {
+        pin_static_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &id)
                 .await?
@@ -95,7 +94,7 @@ impl UserRepository for PostgresUserRepository {
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let user_name = user_name.to_string();
-        pin_future(async move {
+        pin_static_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_name(&mut *connection, &user_name)
                 .await?
@@ -110,7 +109,7 @@ impl UserRepository for PostgresUserRepository {
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let session_id = session.id().to_string();
-        pin_future(async move {
+        pin_static_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &session_id)
                 .await?
@@ -122,7 +121,7 @@ impl UserRepository for PostgresUserRepository {
     fn save(&self, user: &User) -> StaticPinnedFuture<(), UserRepositoryError> {
         let db_clone = self.database.clone();
         let user = UserDb::from(user);
-        pin_future(async move {
+        pin_static_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             save_user(&mut *connection, &user).await
         })
@@ -132,7 +131,7 @@ impl UserRepository for PostgresUserRepository {
 impl PostgresUserRepositoryWithTransaction {
     pub async fn init(database: Arc<PostgresDatabase>) -> Result<Self, ErrorBoxed> {
         let transaction = database
-            .start_transaction(|conn, req| Box::pin(Self::handle_request(conn, req)))
+            .start_transaction(|conn, req| pin_future(Self::handle_request(conn, req)))
             .await?;
         Ok(Self { transaction })
     }
@@ -140,32 +139,38 @@ impl PostgresUserRepositoryWithTransaction {
     async fn handle_request(
         connection: &mut PgConnection,
         request: UserRepositoryTransactionQueryRequest,
-    ) -> Result<(), ErrorBoxed> {
+    ) -> Result<UserRepositoryTransactionQueryResponse, UserRepositoryError> {
         match request {
-            UserRepositoryTransactionQueryRequest::GetById {
-                id,
-                get_by_id_result_sender,
-            } => {
-                let result = get_user_by_id(connection, &id)
-                    .await
-                    .map_err(ErrorBoxed::from);
-                get_by_id_result_sender
-                    .send(result)
-                    .map_err(|_| ErrorBoxed::from_str("can not send result back via sender"))?;
-                Ok(())
+            UserRepositoryTransactionQueryRequest::GetById { id } => {
+                Ok(UserRepositoryTransactionQueryResponse::OptionalUser {
+                    user: get_user_by_id(connection, &id).await?,
+                })
             }
-            _ => todo!(),
+            UserRepositoryTransactionQueryRequest::GetByName { user_name } => {
+                Ok(UserRepositoryTransactionQueryResponse::OptionalUser {
+                    user: get_user_by_name(connection, &user_name).await?,
+                })
+            }
+            UserRepositoryTransactionQueryRequest::GetBySession { session_id } => {
+                Ok(UserRepositoryTransactionQueryResponse::OptionalUser {
+                    user: get_user_by_session(connection, &session_id).await?,
+                })
+            }
+            UserRepositoryTransactionQueryRequest::Save { user } => {
+                save_user(connection, &user).await?;
+                Ok(UserRepositoryTransactionQueryResponse::UserSaved)
+            }
         }
     }
 }
 
 impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
-    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed> {
-        pin_future_error_boxed(async move { self.transaction.commit().await })
+    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError> {
+        pin_static_future(async move { self.transaction.commit().await })
     }
 
-    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), ErrorBoxed> {
-        pin_future_error_boxed(async move { self.transaction.rollback().await })
+    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError> {
+        pin_static_future(async move { self.transaction.rollback().await })
     }
 
     fn get_by_id(
@@ -176,28 +181,24 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
         UserRepositoryError,
     > {
         let id = id.to_string();
-        pin_future(async move {
+        pin_static_future(async move {
             let result = self
                 .transaction
-                .execute::<Option<UserDb>>(Box::new(|tx| {
-                    UserRepositoryTransactionQueryRequest::GetById {
-                        id,
-                        get_by_id_result_sender: tx,
-                    }
-                }))
+                .execute(UserRepositoryTransactionQueryRequest::GetById { id })
                 .await
                 .map_err(UserRepositoryError::from)?;
 
-            Ok((
-                Box::new(Self {
-                    transaction: result.0,
-                }) as Box<dyn UserRepositoryWithTransaction>,
-                result
-                    .1
-                    .map(|db| db.into_domain())
-                    .transpose()
-                    .map_err(ErrorBoxed::from)?,
-            ))
+            match result.1 {
+                UserRepositoryTransactionQueryResponse::OptionalUser { user } => Ok((
+                    Box::new(Self {
+                        transaction: result.0,
+                    }) as Box<dyn UserRepositoryWithTransaction>,
+                    user.map(|db| db.into_domain()).transpose()?,
+                )),
+                _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
+                    "got invalid response for query",
+                ))),
+            }
         })
     }
 
@@ -208,29 +209,25 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        let name = user_name.to_string();
-        pin_future(async move {
+        let user_name = user_name.to_string();
+        pin_static_future(async move {
             let result = self
                 .transaction
-                .execute::<Option<UserDb>>(Box::new(|tx| {
-                    UserRepositoryTransactionQueryRequest::GetByName {
-                        user_name: name,
-                        get_by_name_result_sender: tx,
-                    }
-                }))
+                .execute(UserRepositoryTransactionQueryRequest::GetByName { user_name })
                 .await
                 .map_err(UserRepositoryError::from)?;
 
-            Ok((
-                Box::new(Self {
-                    transaction: result.0,
-                }) as Box<dyn UserRepositoryWithTransaction>,
-                result
-                    .1
-                    .map(|db| db.into_domain())
-                    .transpose()
-                    .map_err(ErrorBoxed::from)?,
-            ))
+            match result.1 {
+                UserRepositoryTransactionQueryResponse::OptionalUser { user } => Ok((
+                    Box::new(Self {
+                        transaction: result.0,
+                    }) as Box<dyn UserRepositoryWithTransaction>,
+                    user.map(|db| db.into_domain()).transpose()?,
+                )),
+                _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
+                    "got invalid response for query",
+                ))),
+            }
         })
     }
 
@@ -241,29 +238,25 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        let sid = session.id().to_string();
-        pin_future(async move {
+        let session_id = session.id().to_string();
+        pin_static_future(async move {
             let result = self
                 .transaction
-                .execute::<Option<UserDb>>(Box::new(|tx| {
-                    UserRepositoryTransactionQueryRequest::GetBySession {
-                        session_id: sid,
-                        get_by_session_result_sender: tx,
-                    }
-                }))
+                .execute(UserRepositoryTransactionQueryRequest::GetBySession { session_id })
                 .await
                 .map_err(UserRepositoryError::from)?;
 
-            Ok((
-                Box::new(Self {
-                    transaction: result.0,
-                }) as Box<dyn UserRepositoryWithTransaction>,
-                result
-                    .1
-                    .map(|db| db.into_domain())
-                    .transpose()
-                    .map_err(ErrorBoxed::from)?,
-            ))
+            match result.1 {
+                UserRepositoryTransactionQueryResponse::OptionalUser { user } => Ok((
+                    Box::new(Self {
+                        transaction: result.0,
+                    }) as Box<dyn UserRepositoryWithTransaction>,
+                    user.map(|db| db.into_domain()).transpose()?,
+                )),
+                _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
+                    "got invalid response for query",
+                ))),
+            }
         })
     }
 
@@ -271,23 +264,25 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
         self: Box<Self>,
         user: &User,
     ) -> StaticPinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
-        let user_db = UserDb::from(user);
-        pin_future(async move {
+        let user = UserDb::from(user);
+        pin_static_future(async move {
             let result = self
                 .transaction
-                .execute::<()>(Box::new(|tx| UserRepositoryTransactionQueryRequest::Save {
-                    user: user_db,
-                    save_result_sender: tx,
-                }))
+                .execute(UserRepositoryTransactionQueryRequest::Save { user })
                 .await
                 .map_err(UserRepositoryError::from)?;
 
-            Ok((
-                Box::new(Self {
-                    transaction: result.0,
-                }) as Box<dyn UserRepositoryWithTransaction>,
-                result.1,
-            ))
+            match result.1 {
+                UserRepositoryTransactionQueryResponse::UserSaved => Ok((
+                    Box::new(Self {
+                        transaction: result.0,
+                    }) as Box<dyn UserRepositoryWithTransaction>,
+                    (),
+                )),
+                _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
+                    "got invalid response for query",
+                ))),
+            }
         })
     }
 }
