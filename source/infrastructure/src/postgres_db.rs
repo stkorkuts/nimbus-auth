@@ -4,9 +4,8 @@ use nimbus_auth_shared::{
     config::AppConfig,
     constants::DEFAULT_CHANNEL_BUFFER_SIZE,
     errors::ErrorBoxed,
-    futures::{PinnedFuture, pin, pin_error_boxed},
 };
-use sqlx::{Acquire, PgConnection, PgPool, Postgres, Transaction, postgres::PgPoolOptions};
+use sqlx::{Acquire, PgConnection, PgPool, postgres::PgPoolOptions};
 use tokio::{
     spawn,
     sync::{
@@ -98,21 +97,20 @@ impl PostgresDatabase {
                 match request {
                     PostgresTransactionRequest::Commit { result_sender } => {
                         let commit_result = transaction.commit().await.map_err(ErrorBoxed::from);
-                        return Ok(result_sender.send(commit_result).map_err(|_| {
+                        return result_sender.send(commit_result).map_err(|_| {
                             ErrorBoxed::from_str("can not send commit result back via sender")
-                        })?);
+                        });
                     }
                     PostgresTransactionRequest::Rollback { result_sender } => {
                         let rollback_result =
                             transaction.rollback().await.map_err(ErrorBoxed::from);
-                        return Ok(result_sender.send(rollback_result).map_err(|_| {
+                        return result_sender.send(rollback_result).map_err(|_| {
                             ErrorBoxed::from_str("can not send rollback result back via sender")
-                        })?);
+                        });
                     }
                     PostgresTransactionRequest::Query(request) => {
-                        on_query_callback(&mut *transaction, request).await?
+                        on_query_callback(&mut transaction, request).await?
                     }
-                    _ => todo!(),
                 }
             }
 

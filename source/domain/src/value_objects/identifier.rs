@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Display, marker::PhantomData};
 
 use ulid::Ulid;
 
@@ -45,8 +45,8 @@ impl<TEntity: Entity<Ulid>> Identifier<Ulid, TEntity> {
     }
 }
 
-impl<TEntity: Entity<Ulid>> ToString for Identifier<Ulid, TEntity> {
-    fn to_string(&self) -> String {
-        self.value.to_string()
+impl<TEntity: Entity<Ulid>> Display for Identifier<Ulid, TEntity> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
     }
 }

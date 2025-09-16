@@ -1,4 +1,3 @@
-use std::ops::Deref;
 
 use crate::entities::user::value_objects::password::errors::PasswordError;
 

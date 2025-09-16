@@ -1,4 +1,4 @@
-use std::{env, error::Error};
+use std::env;
 
 use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_infrastructure::axum_api::WebApi;

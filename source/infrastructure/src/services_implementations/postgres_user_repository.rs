@@ -15,11 +15,8 @@ use nimbus_auth_shared::{
     errors::ErrorBoxed,
     futures::{PinnedFuture, pin, pin_error_boxed},
 };
-use sqlx::{Acquire, PgConnection, Postgres, query, query_as};
-use tokio::{
-    spawn,
-    sync::{mpsc, oneshot},
-};
+use sqlx::{Acquire, PgConnection};
+use tokio::sync::oneshot;
 use ulid::Ulid;
 
 use crate::{
@@ -85,10 +82,10 @@ impl UserRepository for PostgresUserRepository {
         let id = id.to_string();
         pin(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
-            Ok(get_user_by_id(&mut *connection, &id)
+            get_user_by_id(&mut *connection, &id)
                 .await?
                 .map(|user_db| user_db.into_domain())
-                .transpose()?)
+                .transpose()
         })
     }
 
@@ -97,10 +94,10 @@ impl UserRepository for PostgresUserRepository {
         let user_name = user_name.to_string();
         pin(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
-            Ok(get_user_by_name(&mut *connection, &user_name)
+            get_user_by_name(&mut *connection, &user_name)
                 .await?
                 .map(|user_db| user_db.into_domain())
-                .transpose()?)
+                .transpose()
         })
     }
 
@@ -112,10 +109,10 @@ impl UserRepository for PostgresUserRepository {
         let session_id = session.id().to_string();
         pin(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
-            Ok(get_user_by_id(&mut *connection, &session_id)
+            get_user_by_id(&mut *connection, &session_id)
                 .await?
                 .map(|user_db| user_db.into_domain())
-                .transpose()?)
+                .transpose()
         })
     }
 
@@ -124,7 +121,7 @@ impl UserRepository for PostgresUserRepository {
         let user = UserDb::from(user);
         pin(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
-            Ok(save_user(&mut *connection, &user).await?)
+            save_user(&mut *connection, &user).await
         })
     }
 }
