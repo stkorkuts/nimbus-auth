@@ -115,9 +115,9 @@ impl Session<Uninitialized> {
 }
 
 impl Session<Active> {
-    pub fn revoke(Self { id, .. }: Self, current_time: OffsetDateTime) -> Session<Revoked> {
+    pub fn revoke(self, current_time: OffsetDateTime) -> Session<Revoked> {
         Session {
-            id: Identifier::from(*id.value()),
+            id: Identifier::from(*self.id.value()),
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -125,23 +125,19 @@ impl Session<Active> {
     }
 
     pub fn refresh(
-        Self {
-            id,
-            state: Active { user_id, .. },
-            ..
-        }: Self,
+        self,
         current_time: OffsetDateTime,
         expiration_seconds: SessionExpirationSeconds,
     ) -> (Session<Revoked>, Session<Active>) {
         (
             Session {
-                id: Identifier::from(*id.value()),
+                id: Identifier::from(*self.id.value()),
                 state: Revoked {
                     revoked_at: current_time,
                 },
             },
             Session::<Uninitialized>::new(NewSessionSpecification {
-                user_id: user_id.clone(),
+                user_id: self.state.user_id.clone(),
                 current_time,
                 expiration_seconds,
             }),

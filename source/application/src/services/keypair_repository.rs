@@ -1,5 +1,7 @@
 use nimbus_auth_domain::{
-    entities::keypair::{Active, InitializedKeyPair, KeyPair, Uninitialized},
+    entities::keypair::{
+        Active, InitializedKeyPair, InitializedKeyPairRef, KeyPair, Uninitialized,
+    },
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::StaticPinnedFuture;
@@ -45,6 +47,6 @@ pub trait KeyPairRepositoryWithTransaction: Send + Sync {
     >;
     fn save(
         self: Box<Self>,
-        keypair: &InitializedKeyPair,
+        keypair: InitializedKeyPairRef,
     ) -> StaticPinnedFuture<(Box<dyn KeyPairRepositoryWithTransaction>, ()), KeyPairRepositoryError>;
 }

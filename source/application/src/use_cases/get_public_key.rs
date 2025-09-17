@@ -1,4 +1,11 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
+
+use nimbus_auth_domain::{
+    entities::keypair::{self, InitializedKeyPair},
+    value_objects::identifier::Identifier,
+};
+use nimbus_auth_shared::errors::ErrorBoxed;
+use ulid::Ulid;
 
 use crate::{
     services::keypair_repository::KeyPairRepository,
@@ -9,18 +16,29 @@ pub mod errors;
 pub mod schema;
 
 pub async fn handle_get_public_key<'a>(
-    GetPublicKeyRequest { key_id: _key_id }: GetPublicKeyRequest<'a>,
+    GetPublicKeyRequest { key_id }: GetPublicKeyRequest<'a>,
     keypair_repository: Arc<dyn KeyPairRepository>,
 ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
-    todo!();
-
-    // Ok(GetPublicKeyResponse {
-    //     public_key_pem: keypair_repository
-    //         .get_active(None)
-    //         .await?
-    //         .ok_or(GetPublicKeyError::ActiveKeyPairNotFound)?
-    //         .value()
-    //         .public_key_pem()
-    //         .to_vec(),
-    // })
+    let keypair = match key_id {
+        Some(key_id) => keypair_repository
+            .get_by_id(&Identifier::from(
+                Ulid::from_str(key_id).map_err(ErrorBoxed::from)?,
+            ))
+            .await?
+            .ok_or(GetPublicKeyError::KeyPairNotFound)?,
+        None => InitializedKeyPair::Active(
+            keypair_repository
+                .get_active()
+                .await?
+                .ok_or(GetPublicKeyError::KeyPairNotFound)?,
+        ),
+    };
+    Ok(GetPublicKeyResponse {
+        public_key_pem: match keypair {
+            InitializedKeyPair::Active(keypair) => keypair.value().public_key_pem().to_vec(),
+            InitializedKeyPair::Expiring(keypair) => keypair.value().public_key_pem().to_vec(),
+            InitializedKeyPair::Revoked(_) => return Err(GetPublicKeyError::KeyPairIsRevoked),
+            InitializedKeyPair::Expired(_) => return Err(GetPublicKeyError::KeyPairIsExpired),
+        },
+    })
 }

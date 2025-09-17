@@ -1,3 +1,4 @@
+use nimbus_auth_domain::value_objects::access_token::errors::SignAccessTokenError;
 use thiserror::Error;
 use ulid::DecodeError;
 
@@ -29,4 +30,6 @@ pub enum RefreshError {
     KeyPairRepository(#[from] KeyPairRepositoryError),
     #[error("active key pair not found")]
     ActiveKeyPairNotFound,
+    #[error(transparent)]
+    SignAccessToken(#[from] SignAccessTokenError),
 }

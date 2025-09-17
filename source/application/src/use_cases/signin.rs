@@ -67,25 +67,18 @@ pub async fn handle_signin<'a>(
     });
 
     let transactional_session_repository = session_repository.start_transaction().await?;
+
     let (transactional_session_repository, _) = transactional_session_repository
         .save(InitializedSessionRef::Active(&session))
         .await?;
 
-    let signed_access_token = match async {
-        let access_token = &session.generate_access_token(
-            time_service.get_current_time().await?,
-            access_token_exp_seconds,
-        );
-        Ok(access_token.sign(&active_keypair)?)
-    }
-    .await
-    {
-        Ok(signed_access_token) => signed_access_token,
-        Err(err) => {
-            transactional_session_repository.rollback().await?;
-            return Err(err);
-        }
-    };
+    let access_token = &session.generate_access_token(
+        time_service.get_current_time().await?,
+        access_token_exp_seconds,
+    );
+    let signed_access_token = access_token.sign(&active_keypair)?;
+
+    transactional_session_repository.commit().await?;
 
     Ok(SignInResponse {
         user: UserDto::from(&user),

@@ -50,6 +50,13 @@ pub enum InitializedKeyPair {
     Revoked(KeyPair<Revoked>),
 }
 
+pub enum InitializedKeyPairRef<'a> {
+    Active(&'a KeyPair<Active>),
+    Expiring(&'a KeyPair<Expiring>),
+    Expired(&'a KeyPair<Expired>),
+    Revoked(&'a KeyPair<Revoked>),
+}
+
 impl<State: KeyPairState> Entity<Ulid> for KeyPair<State> {
     type Id = Identifier<Ulid, KeyPair<State>>;
 
@@ -183,5 +190,29 @@ impl From<KeyPair<Expired>> for InitializedKeyPair {
 impl From<KeyPair<Revoked>> for InitializedKeyPair {
     fn from(session: KeyPair<Revoked>) -> Self {
         InitializedKeyPair::Revoked(session)
+    }
+}
+
+impl<'a> From<&'a KeyPair<Active>> for InitializedKeyPairRef<'a> {
+    fn from(session: &'a KeyPair<Active>) -> Self {
+        InitializedKeyPairRef::Active(session)
+    }
+}
+
+impl<'a> From<&'a KeyPair<Expiring>> for InitializedKeyPairRef<'a> {
+    fn from(session: &'a KeyPair<Expiring>) -> Self {
+        InitializedKeyPairRef::Expiring(session)
+    }
+}
+
+impl<'a> From<&'a KeyPair<Expired>> for InitializedKeyPairRef<'a> {
+    fn from(session: &'a KeyPair<Expired>) -> Self {
+        InitializedKeyPairRef::Expired(session)
+    }
+}
+
+impl<'a> From<&'a KeyPair<Revoked>> for InitializedKeyPairRef<'a> {
+    fn from(session: &'a KeyPair<Revoked>) -> Self {
+        InitializedKeyPairRef::Revoked(session)
     }
 }
