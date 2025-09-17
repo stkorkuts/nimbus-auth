@@ -10,6 +10,12 @@ use rand::rngs::OsRng;
 
 pub struct OsRandomService {}
 
+impl OsRandomService {
+    pub fn new() -> Self {
+        OsRandomService {}
+    }
+}
+
 impl RandomService for OsRandomService {
     fn get_random_private_key_pem(&self) -> StaticPinnedFuture<String, RandomServiceError> {
         pin_static_future(async {

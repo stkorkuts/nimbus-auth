@@ -1,7 +1,19 @@
-use std::env;
+use std::{env, sync::Arc};
 
-use nimbus_auth_application::use_cases::UseCases;
-use nimbus_auth_infrastructure::axum_api::WebApi;
+use nimbus_auth_application::{
+    services::user_repository,
+    use_cases::{UseCases, UseCasesConfig, UseCasesServices},
+};
+use nimbus_auth_infrastructure::{
+    axum_api::WebApi,
+    postgres_db::PostgresDatabase,
+    services_implementations::{
+        filesystem_keypair_repository::FileSystemKeyPairRepository,
+        os_random_service::OsRandomService, os_time_service::OsTimeService,
+        postgres_session_repository::PostgresSessionRepository,
+        postgres_user_repository::PostgresUserRepository,
+    },
+};
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
@@ -20,7 +32,7 @@ async fn main() -> Result<(), ErrorBoxed> {
 
     configure_tracing(&config)?;
 
-    let use_cases = build_use_cases(&config)?;
+    let use_cases = build_use_cases(&config).await?;
 
     WebApi::run(&config, use_cases).await?;
 
@@ -62,6 +74,28 @@ fn configure_tracing(_: &AppConfig) -> Result<(), ErrorBoxed> {
     Ok(())
 }
 
-fn build_use_cases(app_config: &AppConfig) -> Result<UseCases, ErrorBoxed> {
-    todo!();
+async fn build_use_cases(app_config: &AppConfig) -> Result<UseCases, ErrorBoxed> {
+    let use_cases_config = UseCasesConfig {
+        session_expiration_seconds: app_config.session_expiration_seconds(),
+        access_token_expiration_seconds: app_config.access_token_expiration_seconds(),
+    };
+
+    let postgres_db = Arc::new(PostgresDatabase::new(app_config).await?);
+
+    let session_repository = Arc::new(PostgresSessionRepository::new(postgres_db.clone()));
+    let user_repository = Arc::new(PostgresUserRepository::new(postgres_db.clone()));
+    let keypair_repository =
+        Arc::new(FileSystemKeyPairRepository::init(app_config.keypairs_store_path()).await?);
+    let time_service = Arc::new(OsTimeService::new());
+    let random_service = Arc::new(OsRandomService::new());
+
+    let use_cases_services = UseCasesServices {
+        session_repository,
+        user_repository,
+        keypair_repository,
+        time_service,
+        random_service,
+    };
+
+    Ok(UseCases::new(use_cases_config, use_cases_services))
 }

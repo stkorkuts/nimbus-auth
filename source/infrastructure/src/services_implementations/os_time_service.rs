@@ -4,6 +4,12 @@ use time::OffsetDateTime;
 
 pub struct OsTimeService {}
 
+impl OsTimeService {
+    pub fn new() -> Self {
+        OsTimeService {}
+    }
+}
+
 impl TimeService for OsTimeService {
     fn get_current_time(&self) -> StaticPinnedFuture<time::OffsetDateTime, TimeServiceError> {
         pin_static_future(async { Ok(OffsetDateTime::now_utc()) })
