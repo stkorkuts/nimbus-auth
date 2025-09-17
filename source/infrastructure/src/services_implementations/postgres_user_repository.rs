@@ -22,7 +22,7 @@ use crate::{
     postgres_db::{PostgresDatabase, PostgresTransaction},
     services_implementations::postgres_user_repository::{
         queries::{get_user_by_id, get_user_by_name, get_user_by_session, save_user},
-        schema::UserDb,
+        schema::{GetUserDb, SaveUserDb},
     },
 };
 
@@ -37,11 +37,11 @@ enum UserRepositoryTransactionQueryRequest {
     GetById { id: String },
     GetByName { user_name: String },
     GetBySession { session_id: String },
-    Save { user: UserDb },
+    Save { user: SaveUserDb },
 }
 
 enum UserRepositoryTransactionQueryResponse {
-    OptionalUser { user: Option<UserDb> },
+    OptionalUser { user: Option<GetUserDb> },
     UserSaved,
 }
 
@@ -117,7 +117,7 @@ impl UserRepository for PostgresUserRepository {
 
     fn save(&self, user: &User) -> StaticPinnedFuture<(), UserRepositoryError> {
         let db_clone = self.database.clone();
-        let user = UserDb::from(user);
+        let user = SaveUserDb::from(user);
         pin_static_future(async move {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             save_user(&mut *connection, &user).await
@@ -261,7 +261,7 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
         self: Box<Self>,
         user: &User,
     ) -> StaticPinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
-        let user = UserDb::from(user);
+        let user = SaveUserDb::from(user);
         pin_static_future(async move {
             let result = self
                 .transaction

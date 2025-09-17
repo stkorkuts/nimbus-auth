@@ -15,7 +15,7 @@ use sqlx::PgConnection;
 
 use crate::{
     postgres_db::{PostgresDatabase, PostgresTransaction},
-    services_implementations::postgres_session_repository::schema::SessionDb,
+    services_implementations::postgres_session_repository::schema::GetSessionDb,
 };
 
 mod queries;
@@ -27,11 +27,11 @@ pub struct PostgresSessionRepository {
 
 enum SessionRepositoryWithTransactionQueryRequest {
     GetById { id: String },
-    Save { session: SessionDb },
+    Save { session: GetSessionDb },
 }
 
 enum SessionRepositoryWithTransactionQueryResponse {
-    OptionalSession { session: Option<SessionDb> },
+    OptionalSession { session: Option<GetSessionDb> },
     SessionSaved,
 }
 

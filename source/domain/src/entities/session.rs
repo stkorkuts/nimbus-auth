@@ -22,6 +22,7 @@ pub trait SessionState {}
 pub struct Uninitialized {}
 
 pub struct Active {
+    user_id: Identifier<Ulid, User>,
     expires_at: OffsetDateTime,
 }
 
@@ -35,7 +36,6 @@ pub struct Revoked {
 
 pub struct Session<State: SessionState> {
     id: Identifier<Ulid, Session<State>>,
-    user_id: Identifier<Ulid, User>,
     state: State,
 }
 
@@ -74,8 +74,8 @@ impl Session<Uninitialized> {
     ) -> Session<Active> {
         Session {
             id: Identifier::new(),
-            user_id,
             state: Active {
+                user_id,
                 expires_at: current_time + time::Duration::seconds(expiration_seconds as i64),
             },
         }
@@ -93,18 +93,18 @@ impl Session<Uninitialized> {
         match revoked_at {
             Some(revoked_at) => InitializedSession::from(Session {
                 id: Identifier::from(*id.value()),
-                user_id,
                 state: Revoked { revoked_at },
             }),
             None => match (expires_at - current_time).whole_seconds() > 0 {
                 true => InitializedSession::from(Session {
                     id: Identifier::from(*id.value()),
-                    user_id,
-                    state: Active { expires_at },
+                    state: Active {
+                        user_id,
+                        expires_at,
+                    },
                 }),
                 false => InitializedSession::from(Session {
                     id: Identifier::from(*id.value()),
-                    user_id,
                     state: Expired {
                         expired_at: expires_at,
                     },
@@ -115,13 +115,9 @@ impl Session<Uninitialized> {
 }
 
 impl Session<Active> {
-    pub fn revoke(
-        Self { id, user_id, .. }: Self,
-        current_time: OffsetDateTime,
-    ) -> Session<Revoked> {
+    pub fn revoke(Self { id, .. }: Self, current_time: OffsetDateTime) -> Session<Revoked> {
         Session {
             id: Identifier::from(*id.value()),
-            user_id,
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -129,14 +125,17 @@ impl Session<Active> {
     }
 
     pub fn refresh(
-        Self { id, user_id, .. }: Self,
+        Self {
+            id,
+            state: Active { user_id, .. },
+            ..
+        }: Self,
         current_time: OffsetDateTime,
         expiration_seconds: SessionExpirationSeconds,
     ) -> (Session<Revoked>, Session<Active>) {
         (
             Session {
                 id: Identifier::from(*id.value()),
-                user_id: user_id.clone(),
                 state: Revoked {
                     revoked_at: current_time,
                 },
@@ -154,11 +153,15 @@ impl Session<Active> {
         current_time: OffsetDateTime,
         expiration_seconds: AccessTokenExpirationSeconds,
     ) -> AccessToken {
-        AccessToken::new(self.user_id.clone(), current_time, expiration_seconds)
+        AccessToken::new(self.state.user_id.clone(), current_time, expiration_seconds)
     }
 
     pub fn expires_at(&self) -> OffsetDateTime {
         self.state.expires_at
+    }
+
+    pub fn user_id(&self) -> &Identifier<Ulid, User> {
+        &self.state.user_id
     }
 }
 

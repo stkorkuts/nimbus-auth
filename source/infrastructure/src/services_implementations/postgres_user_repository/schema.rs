@@ -15,14 +15,21 @@ use sqlx::prelude::FromRow;
 use ulid::Ulid;
 
 #[derive(FromRow)]
-pub struct UserDb {
+pub struct GetUserDb {
     pub id: String,
     pub user_name: String,
     pub password_hash: String,
 }
 
-impl UserDb {
-    pub fn into_domain(&self) -> Result<User, UserRepositoryError> {
+#[derive(FromRow)]
+pub struct SaveUserDb {
+    pub id: String,
+    pub user_name: String,
+    pub password_hash: String,
+}
+
+impl GetUserDb {
+    pub fn into_domain(self) -> Result<User, UserRepositoryError> {
         Ok(User::restore(RestoreUserSpecification {
             id: Identifier::from(Ulid::from_string(&self.id).map_err(ErrorBoxed::from)?),
             user_name: UserName::from(&self.user_name)?,
@@ -31,9 +38,9 @@ impl UserDb {
     }
 }
 
-impl From<&User> for UserDb {
+impl From<&User> for SaveUserDb {
     fn from(value: &User) -> Self {
-        UserDb {
+        SaveUserDb {
             id: value.id().to_string(),
             user_name: value.name().to_string(),
             password_hash: value.password_hash().to_string(),
