@@ -1,10 +1,12 @@
-use nimbus_auth_domain::entities::user::value_objects::{
-    name::errors::UserNameError, password::errors::PasswordError,
+use nimbus_auth_domain::{
+    entities::user::value_objects::{name::errors::UserNameError, password::errors::PasswordError},
+    value_objects::access_token::errors::SignAccessTokenError,
 };
 use thiserror::Error;
 
 use crate::services::{
-    keypair_repository::errors::KeyPairRepositoryError, time_service::errors::TimeServiceError,
+    keypair_repository::errors::KeyPairRepositoryError,
+    session_repository::errors::SessionRepositoryError, time_service::errors::TimeServiceError,
     user_repository::errors::UserRepositoryError,
 };
 
@@ -21,9 +23,13 @@ pub enum SignInError {
     #[error("password does not match saved hash")]
     PasswordDoesNotMatchWithHash,
     #[error(transparent)]
+    SessionRepository(#[from] SessionRepositoryError),
+    #[error(transparent)]
     TimeService(#[from] TimeServiceError),
     #[error(transparent)]
     KeyPairRepository(#[from] KeyPairRepositoryError),
     #[error("active key pair not found")]
     ActiveKeyPairNotFound,
+    #[error(transparent)]
+    SignAccessToken(#[from] SignAccessTokenError),
 }

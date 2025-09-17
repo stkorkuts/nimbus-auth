@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use nimbus_auth_domain::entities::keypair::{
+    KeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
+};
 use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
 
 use crate::{
@@ -20,60 +23,25 @@ pub async fn handle_rotate_keypairs(
     random_service: Arc<dyn RandomService>,
     expiration_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RotateKeyPairsResponse, RotateKeyPairsError> {
-    todo!();
+    let private_key_pem = random_service.get_random_private_key_pem().await?;
+    let keypair_value = KeyPairValue::from(&private_key_pem)?;
 
-    // let mut transaction = keypair_repository
-    //     .start_transaction(
-    //         TransactionIsolationLevel::Serializable,
-    //         TransactonBlockTarget::Table,
-    //     )
-    //     .await?;
+    let mut transactional_keypair_repository = keypair_repository.start_transaction().await?;
 
-    // let private_key_pem = random_service.get_random_private_key_pem().await?;
-    // let keypair_value = KeyPairValue::from(&private_key_pem)?;
+    let (mut transactional_keypair_repository, active_keypair) =
+        transactional_keypair_repository.get_active().await?;
 
-    // transaction
-    //     .run(async move |inner_transaction| {
-    //         let active_keypair = keypair_repository
-    //             .get_active(Some(inner_transaction.clone()))
-    //             .await?;
+    if let Some(active_keypair) = active_keypair {
+        let new_pairs = active_keypair.rotate(
+            keypair_value,
+            time_service.get_current_time().await?,
+            expiration_seconds,
+        );
+    } else {
+        let new_keypair = KeyPair::new(NewKeyPairSpecification {
+            value: keypair_value,
+        });
+    }
 
-    //         match active_keypair {
-    //             Some(active_keypair) => {
-    //                 let new_pairs = active_keypair.rotate(
-    //                     keypair_value,
-    //                     time_service.get_current_time().await?,
-    //                     expiration_seconds,
-    //                 );
-    //                 keypair_repository
-    //                     .save(
-    //                         &InitializedKeyPair::from(new_pairs.0),
-    //                         Some(inner_transaction.clone()),
-    //                     )
-    //                     .await?;
-    //                 keypair_repository
-    //                     .save(
-    //                         &InitializedKeyPair::from(new_pairs.1),
-    //                         Some(inner_transaction.clone()),
-    //                     )
-    //                     .await?;
-    //                 Ok(())
-    //             }
-    //             None => {
-    //                 let new_keypair = KeyPair::<Uninitialized>::new(NewKeyPairSpecification {
-    //                     value: keypair_value,
-    //                 });
-    //                 keypair_repository
-    //                     .save(
-    //                         &InitializedKeyPair::from(new_keypair),
-    //                         Some(inner_transaction.clone()),
-    //                     )
-    //                     .await?;
-    //                 Ok(())
-    //             }
-    //         }
-    //     })
-    //     .await?;
-
-    // Ok(RotateKeyPairsResponse {})
+    Ok(RotateKeyPairsResponse {})
 }

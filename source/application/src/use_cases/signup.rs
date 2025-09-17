@@ -3,10 +3,7 @@ use std::sync::Arc;
 use nimbus_auth_domain::{
     entities::{
         Entity,
-        session::{
-            Session,
-            specifications::NewSessionSpecification,
-        },
+        session::{InitializedSessionRef, Session, specifications::NewSessionSpecification},
         user::{
             User,
             specifications::NewUserSpecification,
@@ -40,8 +37,6 @@ pub async fn handle_signup<'a>(
     session_exp_seconds: SessionExpirationSeconds,
     access_token_exp_seconds: AccessTokenExpirationSeconds,
 ) -> Result<SignUpResponse, SignUpError> {
-    todo!();
-
     let user_name = UserName::from(user_name)?;
 
     let existing_user = user_repository.get_by_name(&user_name).await?;
@@ -70,80 +65,43 @@ pub async fn handle_signup<'a>(
         expiration_seconds: session_exp_seconds,
     });
 
-    let mut transactional_user_repository = user_repository.start_transaction().await?;
-    // start session transaction here
-    match async {
-        transactional_user_repository.save(&user).await?;
-        Ok(())
+    let transactional_user_repository = user_repository.start_transaction().await?;
+    let (transactional_user_repository, _) = transactional_user_repository.save(&user).await?;
+
+    let signed_access_token = match async {
+        let transactional_session_repository = session_repository.start_transaction().await?;
+        let (transactional_session_repository, _) = transactional_session_repository
+            .save(InitializedSessionRef::Active(&session))
+            .await?;
+
+        match async {
+            let access_token = &session.generate_access_token(
+                time_service.get_current_time().await?,
+                access_token_exp_seconds,
+            );
+            Ok(access_token.sign(&active_keypair)?)
+        }
+        .await
+        {
+            Ok(signed_access_token) => Ok(signed_access_token),
+            Err(err) => {
+                transactional_session_repository.rollback().await?;
+                Err(err)
+            }
+        }
     }
     .await
     {
-        Ok(signed_access_token) => {
-            transactional_user_repository.commit().await?;
-            Ok(SignUpResponse {
-                user: UserDto::from(&user),
-                session_id: session.id().to_string(),
-                signed_access_token: todo!(),
-            })
-        }
+        Ok(result) => result,
         Err(err) => {
             transactional_user_repository.rollback().await?;
-            Err(err)
+            return Err(err);
         }
-    }
+    };
 
-    // let mut user_repo_transaction = user_repository
-    //     .start_transaction(
-    //         TransactionIsolationLevel::Default,
-    //         TransactonBlockTarget::Default,
-    //     )
-    //     .await?;
-
-    // let user_for_transaction = user.clone();
-    // let session_for_transaction = session.clone();
-
-    // let signed_access_token = user_repo_transaction
-    //     .run(async move |inner_user_repo_transacton| {
-    //         user_repository
-    //             .save(
-    //                 user_for_transaction.clone().as_ref(),
-    //                 Some(inner_user_repo_transacton.clone()),
-    //             )
-    //             .await?;
-
-    //         let mut session_repo_transaction = session_repository
-    //             .start_transaction(
-    //                 TransactionIsolationLevel::Default,
-    //                 TransactonBlockTarget::Default,
-    //             )
-    //             .await?;
-
-    //         Ok(session_repo_transaction
-    //             .run(async move |inner_session_repo_transaction| {
-    //                 session_repository
-    //                     .save(
-    //                         InitializedSessionRef::from(session_for_transaction.clone().as_ref()),
-    //                         Some(inner_session_repo_transaction),
-    //                     )
-    //                     .await?;
-
-    //                 let access_token = session_for_transaction.clone().generate_access_token(
-    //                     time_service.get_current_time().await?,
-    //                     access_token_exp_seconds,
-    //                 );
-    //                 let signed_token = access_token
-    //                     .sign(&active_keypair)
-    //                     .map_err(ErrorBoxed::from)?;
-
-    //                 Ok(signed_token)
-    //             })
-    //             .await?)
-    //     })
-    //     .await?;
-
-    // Ok(SignUpResponse {
-    //     user: UserDto::from(user.as_ref()),
-    //     session_id: session.id().to_string(),
-    //     signed_access_token,
-    // })
+    Ok(SignUpResponse {
+        user: UserDto::from(&user),
+        session_id: session.id().to_string(),
+        signed_access_token,
+    })
 }

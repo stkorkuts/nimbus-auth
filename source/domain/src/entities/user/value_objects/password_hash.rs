@@ -18,7 +18,7 @@ impl PasswordHash {
         todo!()
     }
 
-    pub fn verify(&self, password: Password) -> bool {
+    pub fn verify(&self, password: &Password) -> bool {
         todo!()
     }
 
