@@ -17,9 +17,6 @@ ulid.workspace = true
 # Runtime
 tokio = { version = "1.45.1", features = ["full"] }
 
-# Mocks
-mockall = "0.13.1"
-
 # Protobuf
 prost = "0.12"
 
