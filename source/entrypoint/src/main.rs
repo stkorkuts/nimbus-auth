@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, error::Error, sync::Arc};
 
 use nimbus_auth_application::{
     services::user_repository,
@@ -23,18 +23,23 @@ use nimbus_auth_shared::{
     },
     errors::ErrorBoxed,
 };
+use tokio::sync::oneshot;
 use tracing::subscriber;
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
-async fn main() -> Result<(), ErrorBoxed> {
-    let config = get_config_from_env()?;
+async fn main() -> Result<(), Box<dyn Error>> {
+    let config = get_config_from_env().map_err(|boxed| boxed.inner())?;
 
-    configure_tracing(&config)?;
+    configure_tracing(&config).map_err(|boxed| boxed.inner())?;
 
-    let use_cases = build_use_cases(&config).await?;
+    let use_cases = build_use_cases(&config)
+        .await
+        .map_err(|boxed| boxed.inner())?;
 
-    WebApi::run(&config, use_cases).await?;
+    let (_, shutdown_signal_receiver) = oneshot::channel();
+
+    WebApi::run(&config, use_cases, shutdown_signal_receiver).await?;
 
     Ok(())
 }

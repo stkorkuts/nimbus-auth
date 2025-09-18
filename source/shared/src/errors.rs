@@ -27,6 +27,10 @@ impl ErrorBoxed {
     pub fn from_str<M: Into<String>>(msg: M) -> Self {
         ErrorBoxed(Box::new(StringError(msg.into())))
     }
+
+    pub fn inner(self) -> Box<dyn Error> {
+        self.0
+    }
 }
 
 #[derive(Debug)]

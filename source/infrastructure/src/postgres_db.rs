@@ -1,7 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
 use nimbus_auth_shared::{
-    config::AppConfig, constants::DEFAULT_CHANNEL_BUFFER_SIZE, errors::ErrorBoxed,
+    config::AppConfig, constants::CHANNEL_BUFFER_SIZE_DEFAULT, errors::ErrorBoxed,
     futures::PinnedFuture,
 };
 use sqlx::{Acquire, PgConnection, PgPool, postgres::PgPoolOptions};
@@ -71,7 +71,7 @@ impl PostgresDatabase {
         let (tx_start_sender, tx_start_receiver) = oneshot::channel();
         let (tx_execute_sender, mut tx_execute_receiver) = mpsc::channel::<
             PostgresTransactionRequest<TRequest, TResponse, TError>,
-        >(DEFAULT_CHANNEL_BUFFER_SIZE);
+        >(CHANNEL_BUFFER_SIZE_DEFAULT);
 
         let transaction_task_handle = spawn(async move {
             let mut connection = match self.pool().acquire().await.map_err(ErrorBoxed::from) {
