@@ -4,7 +4,7 @@ use crate::entities::user::value_objects::{
 
 pub mod errors;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PasswordHash {
     value: String,
 }

@@ -15,6 +15,7 @@ pub mod errors;
 pub mod specifications;
 pub mod value_objects;
 
+#[derive(Debug)]
 pub struct User {
     id: Identifier<Ulid, User>,
     name: UserName,

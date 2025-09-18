@@ -1,4 +1,4 @@
-use std::{fmt::Display, marker::PhantomData};
+use std::{fmt::Display, hash, marker::PhantomData};
 
 use ulid::Ulid;
 
@@ -9,9 +9,24 @@ pub trait IdentifierOfType<TId> {
     fn value(&self) -> &TId;
 }
 
+#[derive(Debug)]
 pub struct Identifier<TValue, TEntity: Entity<TValue>> {
     _marker: PhantomData<TEntity>,
     value: TValue,
+}
+
+impl<TValue: PartialEq, TEntity: Entity<TValue>> PartialEq for Identifier<TValue, TEntity> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl<TValue: Eq, TEntity: Entity<TValue>> Eq for Identifier<TValue, TEntity> {}
+
+impl<TValue: hash::Hash, TEntity: Entity<TValue>> hash::Hash for Identifier<TValue, TEntity> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
 }
 
 impl<TValue: Clone, TEntity: Entity<TValue>> Clone for Identifier<TValue, TEntity> {

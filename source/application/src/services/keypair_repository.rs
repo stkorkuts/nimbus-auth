@@ -20,7 +20,10 @@ pub trait KeyPairRepository: Send + Sync {
         id: &Identifier<Ulid, KeyPair<Uninitialized>>,
     ) -> StaticPinnedFuture<Option<InitializedKeyPair>, KeyPairRepositoryError>;
     fn get_active(&self) -> StaticPinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError>;
-    fn save(&self, keypair: &InitializedKeyPair) -> StaticPinnedFuture<(), KeyPairRepositoryError>;
+    fn save(
+        &self,
+        keypair: InitializedKeyPairRef,
+    ) -> StaticPinnedFuture<(), KeyPairRepositoryError>;
 }
 
 pub trait KeyPairRepositoryWithTransaction: Send + Sync {

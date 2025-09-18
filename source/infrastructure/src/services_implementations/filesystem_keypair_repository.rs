@@ -4,7 +4,9 @@ use nimbus_auth_application::services::keypair_repository::{
     KeyPairRepository, KeyPairRepositoryWithTransaction, errors::KeyPairRepositoryError,
 };
 use nimbus_auth_domain::{
-    entities::keypair::{Active, InitializedKeyPair, KeyPair, Uninitialized},
+    entities::keypair::{
+        Active, InitializedKeyPair, InitializedKeyPairRef, KeyPair, Uninitialized,
+    },
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::StaticPinnedFuture;
@@ -41,7 +43,10 @@ impl KeyPairRepository for FileSystemKeyPairRepository {
         todo!()
     }
 
-    fn save(&self, keypair: &InitializedKeyPair) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
+    fn save(
+        &self,
+        keypair: InitializedKeyPairRef,
+    ) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
         todo!()
     }
 }

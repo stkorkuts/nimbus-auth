@@ -1,9 +1,8 @@
-
 use crate::entities::user::value_objects::name::errors::UserNameError;
 
 pub mod errors;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserName {
     value: String,
 }
