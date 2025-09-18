@@ -1,10 +1,5 @@
 {
   "protoc": {
     "options": ["-I proto"]
-  },
-  "rest-client.environmentVariables": {
-    "$shared": {
-      "baseUrl": "https://localhost:8080"
-    }
   }
 }

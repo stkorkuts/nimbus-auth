@@ -4,7 +4,9 @@ members = [
     "application",
     "infrastructure",
     "entrypoint",
-    "shared"
+    "shared",
+    "proto",
+    "tests"
 ]
 
 [workspace.dependencies]

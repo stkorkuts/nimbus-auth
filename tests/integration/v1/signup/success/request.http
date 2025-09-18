@@ -1,5 +1,0 @@
-POST {{baseUrl}}/signup
-Content-Type: application/x-protobuf
-
-< ./request.bin
-> ./response.bin

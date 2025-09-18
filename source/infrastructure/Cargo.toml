@@ -8,6 +8,7 @@ edition = "2024"
 nimbus_auth_domain = { path = "../domain" }
 nimbus_auth_application = { path = "../application" }
 nimbus_auth_shared = { path = "../shared" }
+nimbus_auth_proto = { path = "../proto" }
 
 # Workspace dependencies
 tracing.workspace = true
@@ -29,6 +30,3 @@ rand = "0.8"
 
 # Database
 sqlx = { version = "0.8", features = [ "postgres", "sqlite", "runtime-tokio", "tls-native-tls", "time" ] }
-
-[build-dependencies]
-prost-build = "0.12"
