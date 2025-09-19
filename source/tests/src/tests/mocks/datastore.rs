@@ -7,12 +7,12 @@ use nimbus_auth_domain::{
 };
 use ulid::Ulid;
 
-pub struct MockDatabase {
+pub struct MockDatastore {
     users: Arc<DashMap<Identifier<Ulid, User>, User>>,
     sessions: Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>>,
 }
 
-impl MockDatabase {
+impl MockDatastore {
     pub fn new(users: Option<Vec<User>>, sessions: Option<Vec<SomeSession>>) -> Self {
         Self {
             users: Arc::new(

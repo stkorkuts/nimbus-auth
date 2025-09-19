@@ -16,10 +16,10 @@ use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use tokio::sync::Mutex;
 use ulid::Ulid;
 
-use crate::tests::mocks::database::MockDatabase;
+use crate::tests::mocks::datastore::MockDatastore;
 
 pub struct MockUserRepository {
-    database: Arc<MockDatabase>,
+    datastore: Arc<MockDatastore>,
 }
 
 struct UserSave {
@@ -31,13 +31,13 @@ struct UserSave {
 ///
 /// Transaction implemented with `ReadUncomitted` isolation level which is sufficient for tests for now
 pub struct MockUserRepositoryWithTransaction {
-    database: Arc<MockDatabase>,
+    datastore: Arc<MockDatastore>,
     user_saves: Arc<Mutex<Vec<UserSave>>>,
 }
 
 impl MockUserRepository {
-    pub fn new(database: Arc<MockDatabase>) -> Self {
-        MockUserRepository { database }
+    pub fn new(datastore: Arc<MockDatastore>) -> Self {
+        MockUserRepository { datastore }
     }
 }
 
@@ -45,10 +45,10 @@ impl UserRepository for MockUserRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, UserRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         pin_static_future(async move {
             Ok(Box::new(MockUserRepositoryWithTransaction {
-                database: database_clone,
+                datastore: datastore_clone,
                 user_saves: Arc::new(Mutex::new(Vec::new())),
             }) as Box<dyn UserRepositoryWithTransaction>)
         })
@@ -58,9 +58,9 @@ impl UserRepository for MockUserRepository {
         &self,
         id: Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         pin_static_future(async move {
-            Ok(database_clone
+            Ok(datastore_clone
                 .users()
                 .get(&id)
                 .map(|user_ref| user_ref.value().clone()))
@@ -71,10 +71,10 @@ impl UserRepository for MockUserRepository {
         &self,
         user_name: &UserName,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         let user_name_value = user_name.value().to_string();
         pin_static_future(async move {
-            Ok(database_clone
+            Ok(datastore_clone
                 .users()
                 .iter()
                 .find(|entry| entry.name().value() == user_name_value)
@@ -86,10 +86,10 @@ impl UserRepository for MockUserRepository {
         &self,
         session: &Session<Active>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         let user_id = session.user_id().clone();
         pin_static_future(async move {
-            Ok(database_clone
+            Ok(datastore_clone
                 .users()
                 .get(&user_id)
                 .map(|user_ref| user_ref.value().clone()))
@@ -97,10 +97,10 @@ impl UserRepository for MockUserRepository {
     }
 
     fn save(&self, user: &User) -> StaticPinnedFuture<(), UserRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         let user_clone = user.clone();
         pin_static_future(async move {
-            database_clone
+            datastore_clone
                 .users()
                 .insert(user_clone.id().clone(), user_clone);
             Ok(())
@@ -116,7 +116,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError> {
         pin_static_future(async move {
             let mut saves = self.user_saves.lock().await;
-            let users = self.database.users();
+            let users = self.datastore.users();
             while let Some(save) = saves.pop() {
                 match save.old {
                     Some(old) => {
@@ -140,7 +140,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
     > {
         pin_static_future(async move {
             let user = self
-                .database
+                .datastore
                 .users()
                 .get(&id)
                 .map(|user_ref| user_ref.value().clone());
@@ -158,7 +158,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         let user_name_value = user_name.value().to_string();
         pin_static_future(async move {
             let user = self
-                .database
+                .datastore
                 .users()
                 .iter()
                 .find(|entry| entry.name().value() == user_name_value)
@@ -177,7 +177,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         let user_id = session.user_id().clone();
         pin_static_future(async move {
             let user = self
-                .database
+                .datastore
                 .users()
                 .get(&user_id)
                 .map(|user_ref| user_ref.value().clone());
@@ -192,7 +192,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         let user_clone = user.clone();
         pin_static_future(async move {
             let old = self
-                .database
+                .datastore
                 .users()
                 .insert(user_clone.id().clone(), user_clone.clone());
 

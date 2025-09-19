@@ -14,10 +14,10 @@ use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use tokio::sync::Mutex;
 use ulid::Ulid;
 
-use crate::tests::mocks::database::MockDatabase;
+use crate::tests::mocks::datastore::MockDatastore;
 
 pub struct MockSessionRepository {
-    database: Arc<MockDatabase>,
+    datastore: Arc<MockDatastore>,
 }
 
 struct SessionSave {
@@ -29,13 +29,13 @@ struct SessionSave {
 ///
 /// Transaction implemented with `ReadUncomitted` isolation level which is sufficient for tests for now
 pub struct MockSessionRepositoryWithTransaction {
-    database: Arc<MockDatabase>,
+    datastore: Arc<MockDatastore>,
     session_saves: Arc<Mutex<Vec<SessionSave>>>,
 }
 
 impl MockSessionRepository {
-    pub fn new(database: Arc<MockDatabase>) -> Self {
-        MockSessionRepository { database }
+    pub fn new(datastore: Arc<MockDatastore>) -> Self {
+        MockSessionRepository { datastore }
     }
 }
 
@@ -43,10 +43,10 @@ impl SessionRepository for MockSessionRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn SessionRepositoryWithTransaction>, SessionRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         pin_static_future(async move {
             Ok(Box::new(MockSessionRepositoryWithTransaction {
-                database: database_clone,
+                datastore: datastore_clone,
                 session_saves: Arc::new(Mutex::new(Vec::new())),
             }) as Box<dyn SessionRepositoryWithTransaction>)
         })
@@ -56,9 +56,9 @@ impl SessionRepository for MockSessionRepository {
         &self,
         id: Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         pin_static_future(async move {
-            Ok(database_clone
+            Ok(datastore_clone
                 .sessions()
                 .get(&id)
                 .map(|session_ref| session_ref.value().clone()))
@@ -66,10 +66,10 @@ impl SessionRepository for MockSessionRepository {
     }
 
     fn save(&self, session: SomeSessionRef) -> StaticPinnedFuture<(), SessionRepositoryError> {
-        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
         let session_clone = session.deref_clone();
         pin_static_future(async move {
-            database_clone
+            datastore_clone
                 .sessions()
                 .insert(session_clone.id().clone(), session_clone);
             Ok(())
@@ -85,7 +85,7 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), SessionRepositoryError> {
         pin_static_future(async move {
             let mut saves = self.session_saves.lock().await;
-            let sessions = self.database.sessions();
+            let sessions = self.datastore.sessions();
             while let Some(save) = saves.pop() {
                 match save.old {
                     Some(old) => {
@@ -112,7 +112,7 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
     > {
         pin_static_future(async move {
             let user = self
-                .database
+                .datastore
                 .sessions()
                 .get(&id)
                 .map(|session_ref| session_ref.value().clone());
@@ -128,7 +128,7 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
         let session_clone = session.deref_clone();
         pin_static_future(async move {
             let old = self
-                .database
+                .datastore
                 .sessions()
                 .insert(session_clone.id().clone(), session_clone.clone());
 

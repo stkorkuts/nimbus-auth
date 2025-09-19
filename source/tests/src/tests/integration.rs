@@ -17,7 +17,7 @@ use nimbus_auth_shared::{
 use tokio::{spawn, sync::oneshot};
 
 use crate::tests::mocks::{
-    database::MockDatabase,
+    datastore::MockDatastore,
     services::{
         keypair_repository::MockKeyPairRepository, session_repository::MockSessionRepository,
         user_repository::MockUserRepository,
@@ -66,7 +66,7 @@ async fn build_use_cases(state: IntegrationTestState) -> Result<UseCases, ErrorB
         ),
     };
 
-    let database = Arc::new(MockDatabase::new(state.users, state.sessions));
+    let database = Arc::new(MockDatastore::new(state.users, state.sessions));
 
     let user_repository = MockUserRepository::new(database.clone());
     let session_repository = MockSessionRepository::new(database.clone());
