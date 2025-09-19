@@ -1,5 +1,15 @@
 use std::{error::Error, path::PathBuf, str::FromStr};
 
+use nimbus_auth_domain::{
+    entities::{
+        Entity,
+        keypair::{
+            KeyPair, SomeKeyPair, specifications::NewKeyPairSpecification,
+            value_objects::KeyPairValue,
+        },
+    },
+    value_objects::identifier::{Identifier, IdentifierOfType},
+};
 use nimbus_auth_proto::proto::nimbus::auth::signup::v1::{
     SignUpRequestProto, SignUpResponseProto, sign_up_response_proto,
 };
@@ -16,6 +26,10 @@ const SERVER_ADDR: &str = "localhost:5001";
 const KEYPAIRS_STORE_PATH: &str = "/temp";
 const POSTGRES_DB_URL: &str =
     "postgresql://<username>:<password>@<host>:<port>/<database>?<options>";
+const PRIVATE_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIMUBs5zfkuEGgSLwrUo2vln82Z8hUySsoI+dyA3AonDV
+-----END PRIVATE KEY-----
+";
 
 #[tokio::test]
 async fn test_signup_success() -> Result<(), Box<dyn Error>> {
@@ -25,9 +39,18 @@ async fn test_signup_success() -> Result<(), Box<dyn Error>> {
         postgres_db_url: POSTGRES_DB_URL.to_string(),
     })
     .build();
+
+    let active_keypair = SomeKeyPair::new(NewKeyPairSpecification {
+        value: KeyPairValue::from(PRIVATE_KEY_PEM)?,
+    });
+
     let test_state = IntegrationTestState {
         users: None,
         sessions: None,
+        keypairs: Some(vec![SomeKeyPair::Active {
+            id: Identifier::from(*active_keypair.id().value()),
+            keypair: active_keypair,
+        }]),
     };
 
     run_integration_test(test_action, app_config, test_state)

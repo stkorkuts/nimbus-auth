@@ -11,19 +11,19 @@ use nimbus_auth_domain::{
 use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use ulid::Ulid;
 
+use crate::tests::mocks::datastore::MockDatastore;
+
 pub struct MockKeyPairRepository {
-    keypairs: Arc<DashMap<Ulid, SomeKeyPair>>,
+    datastore: Arc<MockDatastore>,
 }
 
 pub struct MockKeyPairRepositoryWithTransaction {
-    keypairs: Arc<DashMap<Ulid, SomeKeyPair>>,
+    datastore: Arc<MockDatastore>,
 }
 
 impl MockKeyPairRepository {
-    pub fn new() -> Self {
-        MockKeyPairRepository {
-            keypairs: Arc::new(DashMap::new()),
-        }
+    pub fn new(datastore: Arc<MockDatastore>) -> Self {
+        MockKeyPairRepository { datastore }
     }
 }
 
@@ -31,10 +31,10 @@ impl KeyPairRepository for MockKeyPairRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn KeyPairRepositoryWithTransaction>, KeyPairRepositoryError> {
-        let keypairs_clone = self.keypairs.clone();
+        let datastore_clone = self.datastore.clone();
         pin_static_future(async move {
             Ok(Box::new(MockKeyPairRepositoryWithTransaction {
-                keypairs: keypairs_clone,
+                datastore: datastore_clone,
             }) as Box<dyn KeyPairRepositoryWithTransaction>)
         })
     }

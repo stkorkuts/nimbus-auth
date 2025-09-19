@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
-use nimbus_auth_domain::entities::{session::SomeSession, user::User};
+use nimbus_auth_domain::entities::{keypair::SomeKeyPair, session::SomeSession, user::User};
 use nimbus_auth_infrastructure::{
     axum_api::WebApi,
     services_implementations::{
@@ -29,6 +29,7 @@ mod signup;
 struct IntegrationTestState {
     pub users: Option<Vec<User>>,
     pub sessions: Option<Vec<SomeSession>>,
+    pub keypairs: Option<Vec<SomeKeyPair>>,
 }
 
 async fn run_integration_test<
@@ -66,11 +67,15 @@ async fn build_use_cases(state: IntegrationTestState) -> Result<UseCases, ErrorB
         ),
     };
 
-    let database = Arc::new(MockDatastore::new(state.users, state.sessions));
+    let datastore = Arc::new(MockDatastore::new(
+        state.users,
+        state.sessions,
+        state.keypairs,
+    ));
 
-    let user_repository = MockUserRepository::new(database.clone());
-    let session_repository = MockSessionRepository::new(database.clone());
-    let keypair_repository = MockKeyPairRepository::new();
+    let user_repository = MockUserRepository::new(datastore.clone());
+    let session_repository = MockSessionRepository::new(datastore.clone());
+    let keypair_repository = MockKeyPairRepository::new(datastore.clone());
 
     let time_service = OsTimeService::new();
     let random_service = OsRandomService::new();
