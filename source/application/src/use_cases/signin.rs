@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use nimbus_auth_domain::entities::{
     Entity,
-    session::{InitializedSessionRef, Session, specifications::NewSessionSpecification},
+    session::{Session, SomeSession, SomeSessionRef, specifications::NewSessionSpecification},
     user::{
         User,
         value_objects::{name::UserName, password::Password},
@@ -60,7 +60,7 @@ pub async fn handle_signin<'a>(
         .await?
         .ok_or(SignInError::ActiveKeyPairNotFound)?;
 
-    let session = Session::new(NewSessionSpecification {
+    let session = SomeSession::new(NewSessionSpecification {
         user_id: user.id().clone(),
         current_time: time_service.get_current_time().await?,
         expiration_seconds: session_exp_seconds,
@@ -69,7 +69,7 @@ pub async fn handle_signin<'a>(
     let transactional_session_repository = session_repository.start_transaction().await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(InitializedSessionRef::Active(&session))
+        .save(SomeSessionRef::Active(&session))
         .await?;
 
     let access_token = &session.generate_access_token(

@@ -19,38 +19,53 @@ pub mod value_objects;
 
 pub trait KeyPairState {}
 
-pub struct Uninitialized {}
-
+#[derive(Debug, Clone)]
 pub struct Active {
     value: KeyPairValue,
 }
 
+#[derive(Debug, Clone)]
 pub struct Expiring {
     value: KeyPairValue,
     expires_at: OffsetDateTime,
 }
 
+#[derive(Debug, Clone)]
 pub struct Expired {
     expired_at: OffsetDateTime,
 }
 
+#[derive(Debug, Clone)]
 pub struct Revoked {
     revoked_at: OffsetDateTime,
 }
 
+#[derive(Debug, Clone)]
 pub struct KeyPair<State: KeyPairState> {
     id: Identifier<Ulid, KeyPair<State>>,
     state: State,
 }
 
-pub enum InitializedKeyPair {
-    Active(KeyPair<Active>),
-    Expiring(KeyPair<Expiring>),
-    Expired(KeyPair<Expired>),
-    Revoked(KeyPair<Revoked>),
+pub enum SomeKeyPair {
+    Active {
+        id: Identifier<Ulid, SomeKeyPair>,
+        keypair: KeyPair<Active>,
+    },
+    Expiring {
+        id: Identifier<Ulid, SomeKeyPair>,
+        keypair: KeyPair<Expiring>,
+    },
+    Expired {
+        id: Identifier<Ulid, SomeKeyPair>,
+        keypair: KeyPair<Expired>,
+    },
+    Revoked {
+        id: Identifier<Ulid, SomeKeyPair>,
+        keypair: KeyPair<Revoked>,
+    },
 }
 
-pub enum InitializedKeyPairRef<'a> {
+pub enum SomeKeyPairRef<'a> {
     Active(&'a KeyPair<Active>),
     Expiring(&'a KeyPair<Expiring>),
     Expired(&'a KeyPair<Expired>),
@@ -65,13 +80,25 @@ impl<State: KeyPairState> Entity<Ulid> for KeyPair<State> {
     }
 }
 
-impl KeyPairState for Uninitialized {}
+impl Entity<Ulid> for SomeKeyPair {
+    type Id = Identifier<Ulid, SomeKeyPair>;
+
+    fn id(&self) -> &Self::Id {
+        match self {
+            SomeKeyPair::Active { id, .. } => id,
+            SomeKeyPair::Expiring { id, .. } => id,
+            SomeKeyPair::Revoked { id, .. } => id,
+            SomeKeyPair::Expired { id, .. } => id,
+        }
+    }
+}
+
 impl KeyPairState for Active {}
 impl KeyPairState for Expiring {}
 impl KeyPairState for Expired {}
 impl KeyPairState for Revoked {}
 
-impl KeyPair<Uninitialized> {
+impl SomeKeyPair {
     pub fn new(NewKeyPairSpecification { value }: NewKeyPairSpecification) -> KeyPair<Active> {
         KeyPair {
             id: Identifier::new(),
@@ -87,23 +114,23 @@ impl KeyPair<Uninitialized> {
             revoked_at,
             current_time,
         }: RestoreKeyPairSpecification,
-    ) -> InitializedKeyPair {
+    ) -> SomeKeyPair {
         match revoked_at {
-            Some(revoked_at) => InitializedKeyPair::from(KeyPair {
+            Some(revoked_at) => SomeKeyPair::from(KeyPair {
                 id: Identifier::from(*id.value()),
                 state: Revoked { revoked_at },
             }),
             None => match expires_at {
-                None => InitializedKeyPair::from(KeyPair {
+                None => SomeKeyPair::from(KeyPair {
                     id: Identifier::from(*id.value()),
                     state: Active { value },
                 }),
                 Some(expires_at) => match (expires_at - current_time).whole_seconds() > 0 {
-                    true => InitializedKeyPair::from(KeyPair {
+                    true => SomeKeyPair::from(KeyPair {
                         id: Identifier::from(*id.value()),
                         state: Expiring { expires_at, value },
                     }),
-                    false => InitializedKeyPair::from(KeyPair {
+                    false => SomeKeyPair::from(KeyPair {
                         id: Identifier::from(*id.value()),
                         state: Expired {
                             expired_at: expires_at,
@@ -148,7 +175,7 @@ impl KeyPair<Active> {
                     expires_at: current_time + Duration::seconds((expiration_seconds.0 * 2) as i64),
                 },
             },
-            KeyPair::<Uninitialized>::new(NewKeyPairSpecification { value }),
+            SomeKeyPair::new(NewKeyPairSpecification { value }),
         )
     }
 }
@@ -169,50 +196,62 @@ impl KeyPair<Expired> {
     }
 }
 
-impl From<KeyPair<Active>> for InitializedKeyPair {
-    fn from(session: KeyPair<Active>) -> Self {
-        InitializedKeyPair::Active(session)
+impl From<KeyPair<Active>> for SomeKeyPair {
+    fn from(keypair: KeyPair<Active>) -> Self {
+        SomeKeyPair::Active {
+            id: Identifier::from(*keypair.id().value()),
+            keypair,
+        }
     }
 }
 
-impl From<KeyPair<Expiring>> for InitializedKeyPair {
-    fn from(session: KeyPair<Expiring>) -> Self {
-        InitializedKeyPair::Expiring(session)
+impl From<KeyPair<Expiring>> for SomeKeyPair {
+    fn from(keypair: KeyPair<Expiring>) -> Self {
+        SomeKeyPair::Expiring {
+            id: Identifier::from(*keypair.id().value()),
+            keypair,
+        }
     }
 }
 
-impl From<KeyPair<Expired>> for InitializedKeyPair {
-    fn from(session: KeyPair<Expired>) -> Self {
-        InitializedKeyPair::Expired(session)
+impl From<KeyPair<Expired>> for SomeKeyPair {
+    fn from(keypair: KeyPair<Expired>) -> Self {
+        SomeKeyPair::Expired {
+            id: Identifier::from(*keypair.id().value()),
+            keypair,
+        }
     }
 }
 
-impl From<KeyPair<Revoked>> for InitializedKeyPair {
-    fn from(session: KeyPair<Revoked>) -> Self {
-        InitializedKeyPair::Revoked(session)
+impl From<KeyPair<Revoked>> for SomeKeyPair {
+    fn from(keypair: KeyPair<Revoked>) -> Self {
+        SomeKeyPair::Revoked {
+            id: Identifier::from(*keypair.id().value()),
+            keypair,
+        }
     }
 }
 
-impl<'a> From<&'a KeyPair<Active>> for InitializedKeyPairRef<'a> {
-    fn from(session: &'a KeyPair<Active>) -> Self {
-        InitializedKeyPairRef::Active(session)
+impl<'a> From<&'a KeyPair<Active>> for SomeKeyPairRef<'a> {
+    fn from(keypair: &'a KeyPair<Active>) -> Self {
+        SomeKeyPairRef::Active(keypair)
     }
 }
 
-impl<'a> From<&'a KeyPair<Expiring>> for InitializedKeyPairRef<'a> {
-    fn from(session: &'a KeyPair<Expiring>) -> Self {
-        InitializedKeyPairRef::Expiring(session)
+impl<'a> From<&'a KeyPair<Expiring>> for SomeKeyPairRef<'a> {
+    fn from(keypair: &'a KeyPair<Expiring>) -> Self {
+        SomeKeyPairRef::Expiring(keypair)
     }
 }
 
-impl<'a> From<&'a KeyPair<Expired>> for InitializedKeyPairRef<'a> {
-    fn from(session: &'a KeyPair<Expired>) -> Self {
-        InitializedKeyPairRef::Expired(session)
+impl<'a> From<&'a KeyPair<Expired>> for SomeKeyPairRef<'a> {
+    fn from(keypair: &'a KeyPair<Expired>) -> Self {
+        SomeKeyPairRef::Expired(keypair)
     }
 }
 
-impl<'a> From<&'a KeyPair<Revoked>> for InitializedKeyPairRef<'a> {
-    fn from(session: &'a KeyPair<Revoked>) -> Self {
-        InitializedKeyPairRef::Revoked(session)
+impl<'a> From<&'a KeyPair<Revoked>> for SomeKeyPairRef<'a> {
+    fn from(keypair: &'a KeyPair<Revoked>) -> Self {
+        SomeKeyPairRef::Revoked(keypair)
     }
 }

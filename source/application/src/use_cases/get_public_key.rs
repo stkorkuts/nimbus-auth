@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use nimbus_auth_domain::{
-    entities::keypair::{self, InitializedKeyPair},
+    entities::keypair::{self, SomeKeyPair},
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::errors::ErrorBoxed;
@@ -28,10 +28,10 @@ pub async fn handle_get_public_key<'a>(
 
     Ok(GetPublicKeyResponse {
         public_key_pem: match keypair {
-            InitializedKeyPair::Active(keypair) => keypair.value().public_key_pem().to_vec(),
-            InitializedKeyPair::Expiring(keypair) => keypair.value().public_key_pem().to_vec(),
-            InitializedKeyPair::Revoked(_) => return Err(GetPublicKeyError::KeyPairIsRevoked),
-            InitializedKeyPair::Expired(_) => return Err(GetPublicKeyError::KeyPairIsExpired),
+            SomeKeyPair::Active { keypair, .. } => keypair.value().public_key_pem().to_vec(),
+            SomeKeyPair::Expiring { keypair, .. } => keypair.value().public_key_pem().to_vec(),
+            SomeKeyPair::Revoked { .. } => return Err(GetPublicKeyError::KeyPairIsRevoked),
+            SomeKeyPair::Expired { .. } => return Err(GetPublicKeyError::KeyPairIsExpired),
         },
     })
 }

@@ -6,12 +6,13 @@ use nimbus_auth_application::services::session_repository::{
 use nimbus_auth_domain::{
     entities::{
         self,
-        session::{InitializedSession, InitializedSessionRef, Session, Uninitialized},
+        session::{Session, SomeSession, SomeSessionRef},
     },
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::{self, StaticPinnedFuture, pin_future, pin_static_future};
 use sqlx::PgConnection;
+use ulid::Ulid;
 
 use crate::{
     postgres_db::{PostgresDatabase, PostgresTransaction},
@@ -63,15 +64,12 @@ impl SessionRepository for PostgresSessionRepository {
 
     fn get_by_id(
         &self,
-        id: Identifier<ulid::Ulid, Session<Uninitialized>>,
-    ) -> StaticPinnedFuture<Option<InitializedSession>, SessionRepositoryError> {
+        id: Identifier<Ulid, SomeSession>,
+    ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
         todo!()
     }
 
-    fn save(
-        &self,
-        session: InitializedSessionRef,
-    ) -> StaticPinnedFuture<(), SessionRepositoryError> {
+    fn save(&self, session: SomeSessionRef) -> StaticPinnedFuture<(), SessionRepositoryError> {
         todo!()
     }
 }
@@ -106,11 +104,11 @@ impl SessionRepositoryWithTransaction for PostgresSessionRepositoryWithTransacti
 
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<ulid::Ulid, Session<Uninitialized>>,
+        id: Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn SessionRepositoryWithTransaction>,
-            Option<InitializedSession>,
+            Option<SomeSession>,
         ),
         SessionRepositoryError,
     > {
@@ -119,7 +117,7 @@ impl SessionRepositoryWithTransaction for PostgresSessionRepositoryWithTransacti
 
     fn save(
         self: Box<Self>,
-        session: InitializedSessionRef,
+        session: SomeSessionRef,
     ) -> StaticPinnedFuture<(Box<dyn SessionRepositoryWithTransaction>, ()), SessionRepositoryError>
     {
         todo!()

@@ -1,49 +1,99 @@
-use nimbus_auth_application::services::keypair_repository::KeyPairRepository;
+use std::sync::Arc;
 
-pub struct MockKeyPairRepository {}
+use dashmap::DashMap;
+use nimbus_auth_application::services::keypair_repository::{
+    KeyPairRepository, KeyPairRepositoryWithTransaction, errors::KeyPairRepositoryError,
+};
+use nimbus_auth_domain::{
+    entities::keypair::{Active, KeyPair, SomeKeyPair, SomeKeyPairRef},
+    value_objects::identifier::Identifier,
+};
+use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
+use ulid::Ulid;
+
+pub struct MockKeyPairRepository {
+    keypairs: Arc<DashMap<Ulid, SomeKeyPair>>,
+}
+
+pub struct MockKeyPairRepositoryWithTransaction {
+    keypairs: Arc<DashMap<Ulid, SomeKeyPair>>,
+}
+
+impl MockKeyPairRepository {
+    pub fn new() -> Self {
+        MockKeyPairRepository {
+            keypairs: Arc::new(DashMap::new()),
+        }
+    }
+}
 
 impl KeyPairRepository for MockKeyPairRepository {
     fn start_transaction(
         &self,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<Box<dyn nimbus_auth_application::services::keypair_repository::KeyPairRepositoryWithTransaction>, nimbus_auth_application::services::keypair_repository::errors::KeyPairRepositoryError>{
-        todo!()
+    ) -> StaticPinnedFuture<Box<dyn KeyPairRepositoryWithTransaction>, KeyPairRepositoryError> {
+        let keypairs_clone = self.keypairs.clone();
+        pin_static_future(async move {
+            Ok(Box::new(MockKeyPairRepositoryWithTransaction {
+                keypairs: keypairs_clone,
+            }) as Box<dyn KeyPairRepositoryWithTransaction>)
+        })
     }
 
     fn get_by_id(
         &self,
-        id: &nimbus_auth_domain::value_objects::identifier::Identifier<
-            ulid::Ulid,
-            nimbus_auth_domain::entities::keypair::KeyPair<
-                nimbus_auth_domain::entities::keypair::Uninitialized,
-            >,
-        >,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<
-        Option<nimbus_auth_domain::entities::keypair::InitializedKeyPair>,
-        nimbus_auth_application::services::keypair_repository::errors::KeyPairRepositoryError,
+        id: &Identifier<Ulid, SomeKeyPair>,
+    ) -> StaticPinnedFuture<Option<SomeKeyPair>, KeyPairRepositoryError> {
+        todo!()
+    }
+
+    fn get_active(&self) -> StaticPinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError> {
+        todo!()
+    }
+
+    fn save(&self, keypair: SomeKeyPairRef) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
+        todo!()
+    }
+}
+
+impl KeyPairRepositoryWithTransaction for MockKeyPairRepositoryWithTransaction {
+    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
+        todo!()
+    }
+
+    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
+        todo!()
+    }
+
+    fn get_by_id(
+        self: Box<Self>,
+        id: &Identifier<Ulid, SomeKeyPair>,
+    ) -> StaticPinnedFuture<
+        (
+            Box<dyn KeyPairRepositoryWithTransaction>,
+            Option<SomeKeyPair>,
+        ),
+        KeyPairRepositoryError,
     > {
         todo!()
     }
 
     fn get_active(
-        &self,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<
-        Option<
-            nimbus_auth_domain::entities::keypair::KeyPair<
-                nimbus_auth_domain::entities::keypair::Active,
-            >,
-        >,
-        nimbus_auth_application::services::keypair_repository::errors::KeyPairRepositoryError,
+        self: Box<Self>,
+    ) -> StaticPinnedFuture<
+        (
+            Box<dyn KeyPairRepositoryWithTransaction>,
+            Option<KeyPair<Active>>,
+        ),
+        KeyPairRepositoryError,
     > {
         todo!()
     }
 
     fn save(
-        &self,
-        keypair: nimbus_auth_domain::entities::keypair::InitializedKeyPairRef,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<
-        (),
-        nimbus_auth_application::services::keypair_repository::errors::KeyPairRepositoryError,
-    > {
+        self: Box<Self>,
+        keypair: SomeKeyPairRef,
+    ) -> StaticPinnedFuture<(Box<dyn KeyPairRepositoryWithTransaction>, ()), KeyPairRepositoryError>
+    {
         todo!()
     }
 }

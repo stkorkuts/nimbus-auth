@@ -18,6 +18,7 @@ use crate::{
 
 pub mod errors;
 
+#[derive(Debug, Clone)]
 pub struct AccessToken {
     user_id: Identifier<Ulid, User>,
     expires_at: OffsetDateTime,

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_domain::entities::keypair::{
-    InitializedKeyPairRef, KeyPair, specifications::NewKeyPairSpecification,
+    KeyPair, SomeKeyPair, SomeKeyPairRef, specifications::NewKeyPairSpecification,
     value_objects::KeyPairValue,
 };
 use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
@@ -40,19 +40,19 @@ pub async fn handle_rotate_keypairs(
                 expiration_seconds,
             );
             let (transactional_keypair_repository, _) = transactional_keypair_repository
-                .save(InitializedKeyPairRef::from(&expiring_keypair))
+                .save(SomeKeyPairRef::from(&expiring_keypair))
                 .await?;
             let (transactional_keypair_repository, _) = transactional_keypair_repository
-                .save(InitializedKeyPairRef::from(&new_active_keypair))
+                .save(SomeKeyPairRef::from(&new_active_keypair))
                 .await?;
             transactional_keypair_repository
         }
         None => {
-            let new_keypair = KeyPair::new(NewKeyPairSpecification {
+            let new_keypair = SomeKeyPair::new(NewKeyPairSpecification {
                 value: keypair_value,
             });
             let (transactional_keypair_repository, _) = transactional_keypair_repository
-                .save(InitializedKeyPairRef::from(&new_keypair))
+                .save(SomeKeyPairRef::from(&new_keypair))
                 .await?;
             transactional_keypair_repository
         }

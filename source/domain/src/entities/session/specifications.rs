@@ -4,7 +4,7 @@ use ulid::Ulid;
 
 use crate::{
     entities::{
-        session::{Session, Uninitialized},
+        session::{Session, SomeSession},
         user::User,
     },
     value_objects::identifier::Identifier,
@@ -17,7 +17,7 @@ pub struct NewSessionSpecification {
 }
 
 pub struct RestoreSessionSpecification {
-    pub id: Identifier<Ulid, Session<Uninitialized>>,
+    pub id: Identifier<Ulid, SomeSession>,
     pub user_id: Identifier<Ulid, User>,
     pub revoked_at: Option<OffsetDateTime>,
     pub expires_at: OffsetDateTime,

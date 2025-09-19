@@ -1,36 +1,87 @@
-use nimbus_auth_application::services::session_repository::SessionRepository;
+use std::sync::Arc;
 
-pub struct MockSessionRepository {}
+use dashmap::DashMap;
+use nimbus_auth_application::services::session_repository::{
+    SessionRepository, SessionRepositoryWithTransaction, errors::SessionRepositoryError,
+};
+use nimbus_auth_domain::{
+    entities::{
+        Entity,
+        keypair::Active,
+        session::{Session, SomeSession, SomeSessionRef},
+    },
+    value_objects::identifier::Identifier,
+};
+use nimbus_auth_shared::futures::StaticPinnedFuture;
+use ulid::Ulid;
+
+pub struct MockSessionRepository {
+    sessions: Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>>,
+}
+
+pub struct MockSessionRepositoryWithTransaction {
+    sessions: Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>>,
+}
+
+impl MockSessionRepository {
+    pub fn new(sessions: Option<Vec<SomeSession>>) -> Self {
+        let sessions = Arc::new(
+            sessions
+                .unwrap_or_default()
+                .into_iter()
+                .map(|session| (session.id().clone(), session))
+                .collect(),
+        );
+        MockSessionRepository { sessions }
+    }
+}
 
 impl SessionRepository for MockSessionRepository {
     fn start_transaction(
         &self,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<Box<dyn nimbus_auth_application::services::session_repository::SessionRepositoryWithTransaction>, nimbus_auth_application::services::session_repository::errors::SessionRepositoryError>{
+    ) -> StaticPinnedFuture<Box<dyn SessionRepositoryWithTransaction>, SessionRepositoryError> {
         todo!()
     }
 
     fn get_by_id(
         &self,
-        id: nimbus_auth_domain::value_objects::identifier::Identifier<
-            ulid::Ulid,
-            nimbus_auth_domain::entities::session::Session<
-                nimbus_auth_domain::entities::session::Uninitialized,
-            >,
-        >,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<
-        Option<nimbus_auth_domain::entities::session::InitializedSession>,
-        nimbus_auth_application::services::session_repository::errors::SessionRepositoryError,
+        id: Identifier<Ulid, SomeSession>,
+    ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
+        todo!()
+    }
+
+    fn save(&self, session: SomeSessionRef) -> StaticPinnedFuture<(), SessionRepositoryError> {
+        todo!()
+    }
+}
+
+impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
+    fn commit(self: Box<Self>) -> StaticPinnedFuture<(), SessionRepositoryError> {
+        todo!()
+    }
+
+    fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), SessionRepositoryError> {
+        todo!()
+    }
+
+    fn get_by_id(
+        self: Box<Self>,
+        id: Identifier<Ulid, SomeSession>,
+    ) -> StaticPinnedFuture<
+        (
+            Box<dyn SessionRepositoryWithTransaction>,
+            Option<SomeSession>,
+        ),
+        SessionRepositoryError,
     > {
         todo!()
     }
 
     fn save(
-        &self,
-        session: nimbus_auth_domain::entities::session::InitializedSessionRef,
-    ) -> nimbus_auth_shared::futures::StaticPinnedFuture<
-        (),
-        nimbus_auth_application::services::session_repository::errors::SessionRepositoryError,
-    > {
+        self: Box<Self>,
+        session: SomeSessionRef,
+    ) -> StaticPinnedFuture<(Box<dyn SessionRepositoryWithTransaction>, ()), SessionRepositoryError>
+    {
         todo!()
     }
 }

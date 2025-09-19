@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::entities::user::value_objects::name::errors::UserNameError;
 
 pub mod errors;
@@ -17,8 +19,8 @@ impl UserName {
     }
 }
 
-impl ToString for UserName {
-    fn to_string(&self) -> String {
-        self.value.to_string()
+impl Display for UserName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "User name: {}", self.value)
     }
 }

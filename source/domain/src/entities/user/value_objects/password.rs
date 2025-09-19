@@ -1,4 +1,3 @@
-
 use crate::entities::user::value_objects::password::errors::PasswordError;
 
 pub mod errors;
@@ -15,11 +14,5 @@ impl Password {
 
     pub fn value(&self) -> &str {
         &self.value
-    }
-}
-
-impl ToString for Password {
-    fn to_string(&self) -> String {
-        self.value.to_string()
     }
 }

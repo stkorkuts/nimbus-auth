@@ -2,7 +2,7 @@ use time::OffsetDateTime;
 use ulid::Ulid;
 
 use crate::{
-    entities::keypair::{KeyPair, Uninitialized, value_objects::KeyPairValue},
+    entities::keypair::{SomeKeyPair, value_objects::KeyPairValue},
     value_objects::identifier::Identifier,
 };
 
@@ -11,7 +11,7 @@ pub struct NewKeyPairSpecification {
 }
 
 pub struct RestoreKeyPairSpecification {
-    pub id: Identifier<Ulid, KeyPair<Uninitialized>>,
+    pub id: Identifier<Ulid, SomeKeyPair>,
     pub value: KeyPairValue,
     pub expires_at: Option<OffsetDateTime>,
     pub revoked_at: Option<OffsetDateTime>,

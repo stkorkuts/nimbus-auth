@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
-use nimbus_auth_domain::entities::{session::InitializedSession, user::User};
+use nimbus_auth_domain::entities::{session::SomeSession, user::User};
 use nimbus_auth_infrastructure::{
     axum_api::WebApi,
     services_implementations::{
@@ -25,7 +25,7 @@ mod signup;
 
 struct IntegrationTestState {
     pub users: Option<Vec<User>>,
-    pub sessions: Option<Vec<InitializedSession>>,
+    pub sessions: Option<Vec<SomeSession>>,
 }
 
 async fn run_integration_test<
@@ -36,7 +36,7 @@ async fn run_integration_test<
     config: AppConfig,
     state: IntegrationTestState,
 ) -> Result<(), ErrorBoxed> {
-    let use_cases = build_use_cases(&state).await?;
+    let use_cases = build_use_cases(state).await?;
 
     let (shutdown_signal_sender, shutdown_signal_receiver) = oneshot::channel();
 
@@ -55,7 +55,7 @@ async fn run_integration_test<
     test_result
 }
 
-async fn build_use_cases(state: &IntegrationTestState) -> Result<UseCases, ErrorBoxed> {
+async fn build_use_cases(state: IntegrationTestState) -> Result<UseCases, ErrorBoxed> {
     let use_cases_config = UseCasesConfig {
         session_expiration_seconds: SessionExpirationSeconds(SESSION_EXPIRATION_SECONDS_DEFAULT),
         access_token_expiration_seconds: AccessTokenExpirationSeconds(
@@ -63,9 +63,9 @@ async fn build_use_cases(state: &IntegrationTestState) -> Result<UseCases, Error
         ),
     };
 
-    let user_repository = MockUserRepository {};
-    let session_repository = MockSessionRepository {};
-    let keypair_repository = MockKeyPairRepository {};
+    let user_repository = MockUserRepository::new(state.users);
+    let session_repository = MockSessionRepository::new(state.sessions);
+    let keypair_repository = MockKeyPairRepository::new();
 
     let time_service = OsTimeService::new();
     let random_service = OsRandomService::new();

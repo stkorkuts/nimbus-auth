@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::entities::user::value_objects::{
     password::Password, password_hash::errors::PasswordHashError,
 };
@@ -27,8 +29,8 @@ impl PasswordHash {
     }
 }
 
-impl ToString for PasswordHash {
-    fn to_string(&self) -> String {
-        self.value.to_string()
+impl Display for PasswordHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Password hash: {}", self.value)
     }
 }

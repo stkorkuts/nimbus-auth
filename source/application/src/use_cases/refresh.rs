@@ -3,7 +3,7 @@ use std::sync::Arc;
 use nimbus_auth_domain::{
     entities::{
         Entity,
-        session::{InitializedSession, InitializedSessionRef, Session},
+        session::{Session, SomeSession, SomeSessionRef},
     },
     value_objects::identifier::Identifier,
 };
@@ -36,9 +36,9 @@ pub async fn handle_refresh(
         .ok_or(RefreshError::SessionIsNotFound)?;
 
     let active_session = match session {
-        InitializedSession::Active(session) => Ok(session),
-        InitializedSession::Expired(_) => Err(RefreshError::SessionIsExpired),
-        InitializedSession::Revoked(_) => Err(RefreshError::SessionIsRevoked),
+        SomeSession::Active { session, .. } => Ok(session),
+        SomeSession::Expired { .. } => Err(RefreshError::SessionIsExpired),
+        SomeSession::Revoked { .. } => Err(RefreshError::SessionIsRevoked),
     }?;
 
     let user = user_repository
@@ -57,11 +57,11 @@ pub async fn handle_refresh(
     let transactional_session_repository = session_repository.start_transaction().await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(InitializedSessionRef::Revoked(&revoked_session))
+        .save(SomeSessionRef::Revoked(&revoked_session))
         .await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(InitializedSessionRef::Active(&new_active_session))
+        .save(SomeSessionRef::Active(&new_active_session))
         .await?;
 
     let access_token = &new_active_session.generate_access_token(

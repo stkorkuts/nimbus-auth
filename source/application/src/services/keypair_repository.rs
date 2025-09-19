@@ -1,7 +1,5 @@
 use nimbus_auth_domain::{
-    entities::keypair::{
-        Active, InitializedKeyPair, InitializedKeyPairRef, KeyPair, Uninitialized,
-    },
+    entities::keypair::{Active, KeyPair, SomeKeyPair, SomeKeyPairRef},
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::StaticPinnedFuture;
@@ -17,13 +15,10 @@ pub trait KeyPairRepository: Send + Sync {
     ) -> StaticPinnedFuture<Box<dyn KeyPairRepositoryWithTransaction>, KeyPairRepositoryError>;
     fn get_by_id(
         &self,
-        id: &Identifier<Ulid, KeyPair<Uninitialized>>,
-    ) -> StaticPinnedFuture<Option<InitializedKeyPair>, KeyPairRepositoryError>;
+        id: &Identifier<Ulid, SomeKeyPair>,
+    ) -> StaticPinnedFuture<Option<SomeKeyPair>, KeyPairRepositoryError>;
     fn get_active(&self) -> StaticPinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError>;
-    fn save(
-        &self,
-        keypair: InitializedKeyPairRef,
-    ) -> StaticPinnedFuture<(), KeyPairRepositoryError>;
+    fn save(&self, keypair: SomeKeyPairRef) -> StaticPinnedFuture<(), KeyPairRepositoryError>;
 }
 
 pub trait KeyPairRepositoryWithTransaction: Send + Sync {
@@ -31,11 +26,11 @@ pub trait KeyPairRepositoryWithTransaction: Send + Sync {
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError>;
     fn get_by_id(
         self: Box<Self>,
-        id: &Identifier<Ulid, KeyPair<Uninitialized>>,
+        id: &Identifier<Ulid, SomeKeyPair>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn KeyPairRepositoryWithTransaction>,
-            Option<InitializedKeyPair>,
+            Option<SomeKeyPair>,
         ),
         KeyPairRepositoryError,
     >;
@@ -50,6 +45,6 @@ pub trait KeyPairRepositoryWithTransaction: Send + Sync {
     >;
     fn save(
         self: Box<Self>,
-        keypair: InitializedKeyPairRef,
+        keypair: SomeKeyPairRef,
     ) -> StaticPinnedFuture<(Box<dyn KeyPairRepositoryWithTransaction>, ()), KeyPairRepositoryError>;
 }
