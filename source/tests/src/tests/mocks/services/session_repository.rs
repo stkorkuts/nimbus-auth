@@ -15,24 +15,22 @@ use nimbus_auth_domain::{
 use nimbus_auth_shared::futures::StaticPinnedFuture;
 use ulid::Ulid;
 
+use crate::tests::mocks::database::MockDatabase;
+
 pub struct MockSessionRepository {
-    sessions: Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>>,
+    database: Arc<MockDatabase>,
 }
 
+/// Represents mock session repository with active transaction
+///
+/// Transaction implemented with `ReadUncomitted` isolation level which is sufficient for tests for now
 pub struct MockSessionRepositoryWithTransaction {
-    sessions: Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>>,
+    database: Arc<MockDatabase>,
 }
 
 impl MockSessionRepository {
-    pub fn new(sessions: Option<Vec<SomeSession>>) -> Self {
-        let sessions = Arc::new(
-            sessions
-                .unwrap_or_default()
-                .into_iter()
-                .map(|session| (session.id().clone(), session))
-                .collect(),
-        );
-        MockSessionRepository { sessions }
+    pub fn new(database: Arc<MockDatabase>) -> Self {
+        MockSessionRepository { database }
     }
 }
 

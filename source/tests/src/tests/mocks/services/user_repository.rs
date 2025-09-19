@@ -13,26 +13,31 @@ use nimbus_auth_domain::{
     value_objects::identifier::{Identifier, IdentifierOfType},
 };
 use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
+use tokio::sync::Mutex;
 use ulid::Ulid;
 
+use crate::tests::mocks::database::MockDatabase;
+
 pub struct MockUserRepository {
-    users: Arc<DashMap<Identifier<Ulid, User>, User>>,
+    database: Arc<MockDatabase>,
 }
 
+struct UserSave {
+    old: Option<User>,
+    new: User,
+}
+
+/// Represents mock user repository with active transaction
+///
+/// Transaction implemented with `ReadUncomitted` isolation level which is sufficient for tests for now
 pub struct MockUserRepositoryWithTransaction {
-    users: Arc<DashMap<Identifier<Ulid, User>, User>>,
+    database: Arc<MockDatabase>,
+    user_saves: Arc<Mutex<Vec<UserSave>>>,
 }
 
 impl MockUserRepository {
-    pub fn new(users: Option<Vec<User>>) -> Self {
-        let users = Arc::new(
-            users
-                .unwrap_or_default()
-                .into_iter()
-                .map(|user| (user.id().clone(), user))
-                .collect(),
-        );
-        MockUserRepository { users }
+    pub fn new(database: Arc<MockDatabase>) -> Self {
+        MockUserRepository { database }
     }
 }
 
@@ -40,12 +45,12 @@ impl UserRepository for MockUserRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, UserRepositoryError> {
-        let users_clone = self.users.clone();
+        let database_clone: Arc<MockDatabase> = self.database.clone();
         pin_static_future(async move {
-            Ok(
-                Box::new(MockUserRepositoryWithTransaction { users: users_clone })
-                    as Box<dyn UserRepositoryWithTransaction>,
-            )
+            Ok(Box::new(MockUserRepositoryWithTransaction {
+                database: database_clone,
+                user_saves: Arc::new(Mutex::new(Vec::new())),
+            }) as Box<dyn UserRepositoryWithTransaction>)
         })
     }
 
@@ -53,35 +58,77 @@ impl UserRepository for MockUserRepository {
         &self,
         id: Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        todo!()
+        let database_clone: Arc<MockDatabase> = self.database.clone();
+        pin_static_future(async move {
+            Ok(database_clone
+                .users()
+                .get(&id)
+                .map(|user_ref| user_ref.value().clone()))
+        })
     }
 
     fn get_by_name(
         &self,
         user_name: &UserName,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        todo!()
+        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let user_name_value = user_name.value().to_string();
+        pin_static_future(async move {
+            Ok(database_clone
+                .users()
+                .iter()
+                .find(|entry| entry.name().value() == user_name_value)
+                .map(|user_ref| user_ref.value().clone()))
+        })
     }
 
     fn get_by_session(
         &self,
         session: &Session<Active>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
-        todo!()
+        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let user_id = session.user_id().clone();
+        pin_static_future(async move {
+            Ok(database_clone
+                .users()
+                .get(&user_id)
+                .map(|user_ref| user_ref.value().clone()))
+        })
     }
 
     fn save(&self, user: &User) -> StaticPinnedFuture<(), UserRepositoryError> {
-        todo!()
+        let database_clone: Arc<MockDatabase> = self.database.clone();
+        let user_clone = user.clone();
+        pin_static_future(async move {
+            database_clone
+                .users()
+                .insert(user_clone.id().clone(), user_clone);
+            Ok(())
+        })
     }
 }
 
 impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
     fn commit(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError> {
-        todo!()
+        pin_static_future(async { Ok(()) })
     }
 
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError> {
-        todo!()
+        pin_static_future(async move {
+            let mut saves = self.user_saves.lock().await;
+            let users = self.database.users();
+            while let Some(save) = saves.pop() {
+                match save.old {
+                    Some(old) => {
+                        users.insert(old.id().clone(), old.clone());
+                    }
+                    None => {
+                        users.remove(save.new.id());
+                    }
+                }
+            }
+            Ok(())
+        })
     }
 
     fn get_by_id(
@@ -91,7 +138,14 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        todo!()
+        pin_static_future(async move {
+            let user = self
+                .database
+                .users()
+                .get(&id)
+                .map(|user_ref| user_ref.value().clone());
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+        })
     }
 
     fn get_by_name(
@@ -101,7 +155,16 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        todo!()
+        let user_name_value = user_name.value().to_string();
+        pin_static_future(async move {
+            let user = self
+                .database
+                .users()
+                .iter()
+                .find(|entry| entry.name().value() == user_name_value)
+                .map(|user_ref| user_ref.value().clone());
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+        })
     }
 
     fn get_by_session(
@@ -111,13 +174,39 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        todo!()
+        let user_id = session.user_id().clone();
+        pin_static_future(async move {
+            let user = self
+                .database
+                .users()
+                .get(&user_id)
+                .map(|user_ref| user_ref.value().clone());
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
+        })
     }
 
     fn save(
         self: Box<Self>,
         user: &User,
     ) -> StaticPinnedFuture<(Box<dyn UserRepositoryWithTransaction>, ()), UserRepositoryError> {
-        todo!()
+        let user_clone = user.clone();
+        pin_static_future(async move {
+            let old = self
+                .database
+                .users()
+                .insert(user_clone.id().clone(), user_clone.clone());
+
+            let save_record = UserSave {
+                old,
+                new: user_clone,
+            };
+
+            {
+                let mut saves = self.user_saves.lock().await;
+                saves.push(save_record);
+            }
+
+            Ok((self as Box<dyn UserRepositoryWithTransaction>, ()))
+        })
     }
 }

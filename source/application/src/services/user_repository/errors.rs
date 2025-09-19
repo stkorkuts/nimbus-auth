@@ -10,6 +10,8 @@ pub enum UserRepositoryError {
     UserName(#[from] UserNameError),
     #[error(transparent)]
     PasswordHash(#[from] PasswordHashError),
+    #[error("session is not found")]
+    SessionIsNotFound,
     #[error(transparent)]
     Other(#[from] ErrorBoxed),
 }
