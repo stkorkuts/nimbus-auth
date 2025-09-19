@@ -23,7 +23,7 @@ mod handlers;
 pub struct WebApi {}
 
 impl WebApi {
-    pub async fn run(
+    pub async fn serve(
         config: &AppConfig,
         use_cases: UseCases,
         shutdown_signal_receiver: oneshot::Receiver<()>,

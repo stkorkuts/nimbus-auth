@@ -44,7 +44,7 @@ async fn run_integration_test<
     let (shutdown_signal_sender, shutdown_signal_receiver) = oneshot::channel();
 
     let join_handle = spawn(async move {
-        WebApi::run(&config, use_cases, shutdown_signal_receiver).await?;
+        WebApi::serve(&config, use_cases, shutdown_signal_receiver).await?;
         Ok::<(), ErrorBoxed>(())
     });
 

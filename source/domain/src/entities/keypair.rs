@@ -46,6 +46,7 @@ pub struct KeyPair<State: KeyPairState> {
     state: State,
 }
 
+#[derive(Debug, Clone)]
 pub enum SomeKeyPair {
     Active {
         id: Identifier<Ulid, SomeKeyPair>,

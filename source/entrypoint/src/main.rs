@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let (_, shutdown_signal_receiver) = oneshot::channel();
 
-    WebApi::run(&config, use_cases, shutdown_signal_receiver).await?;
+    WebApi::serve(&config, use_cases, shutdown_signal_receiver).await?;
 
     Ok(())
 }
