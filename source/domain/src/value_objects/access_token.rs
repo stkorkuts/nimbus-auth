@@ -65,7 +65,7 @@ impl AccessToken {
             kid: keypair.id().to_string(),
         };
 
-        let key = EncodingKey::from_ed_pem(&keypair.value().private_key_pem())
+        let key = EncodingKey::from_ed_pem(keypair.value().private_key_pem().as_bytes())
             .map_err(SignAccessTokenError::InvalidPrivateKeyFormat)?;
 
         let token = encode(&header, &claims, &key).map_err(SignAccessTokenError::EncodingError)?;

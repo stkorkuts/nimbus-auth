@@ -25,7 +25,7 @@ pub async fn handle_rotate_keypairs(
     expiration_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RotateKeyPairsResponse, RotateKeyPairsError> {
     let private_key_pem = random_service.get_random_private_key_pem().await?;
-    let keypair_value = KeyPairValue::from(&private_key_pem)?;
+    let keypair_value = KeyPairValue::from_pem(private_key_pem)?;
 
     let transactional_keypair_repository = keypair_repository.start_transaction().await?;
 

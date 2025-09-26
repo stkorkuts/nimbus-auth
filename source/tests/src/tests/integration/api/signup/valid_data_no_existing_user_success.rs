@@ -18,6 +18,7 @@ use nimbus_auth_shared::{
 };
 use prost::Message;
 use reqwest::Client;
+use zeroize::Zeroizing;
 
 use crate::tests::integration::api::{ApiTestState, run_api_test};
 
@@ -40,7 +41,7 @@ async fn test_valid_data_no_existing_user_success() -> Result<(), Box<dyn Error>
     .build();
 
     let active_keypair = SomeKeyPair::new(NewKeyPairSpecification {
-        value: KeyPairValue::from(PRIVATE_KEY_PEM)?,
+        value: KeyPairValue::from_pem(Zeroizing::new(PRIVATE_KEY_PEM.to_string()))?,
     });
 
     let test_state = ApiTestState {
@@ -59,8 +60,8 @@ async fn test_valid_data_no_existing_user_success() -> Result<(), Box<dyn Error>
 
 async fn test_action() -> Result<(), ErrorBoxed> {
     // arrange
-    let user_name = "test";
-    let password = "test";
+    let user_name = "stanislau";
+    let password = "StrongPassword123!";
 
     // act
     let signup_request_proto = SignUpRequestProto {

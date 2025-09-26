@@ -13,6 +13,7 @@ tracing-subscriber.workspace = true
 time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
+zeroize.workspace = true
 
 # Crypto
 ed25519-dalek = { version = "2.2.0", features = ["pkcs8", "pem"] }

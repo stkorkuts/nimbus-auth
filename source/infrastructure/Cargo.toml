@@ -17,6 +17,7 @@ time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+zeroize.workspace = true
 
 # Api
 axum = "0.8.4"

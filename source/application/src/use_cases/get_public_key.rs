@@ -28,8 +28,8 @@ pub async fn handle_get_public_key<'a>(
 
     Ok(GetPublicKeyResponse {
         public_key_pem: match keypair {
-            SomeKeyPair::Active { keypair, .. } => keypair.value().public_key_pem().to_vec(),
-            SomeKeyPair::Expiring { keypair, .. } => keypair.value().public_key_pem().to_vec(),
+            SomeKeyPair::Active { keypair, .. } => keypair.value().public_key_pem(),
+            SomeKeyPair::Expiring { keypair, .. } => keypair.value().public_key_pem(),
             SomeKeyPair::Revoked { .. } => return Err(GetPublicKeyError::KeyPairIsRevoked),
             SomeKeyPair::Expired { .. } => return Err(GetPublicKeyError::KeyPairIsExpired),
         },

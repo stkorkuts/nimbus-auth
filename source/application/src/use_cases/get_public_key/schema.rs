@@ -3,5 +3,5 @@ pub struct GetPublicKeyRequest<'a> {
 }
 
 pub struct GetPublicKeyResponse {
-    pub public_key_pem: Vec<u8>,
+    pub public_key_pem: String,
 }

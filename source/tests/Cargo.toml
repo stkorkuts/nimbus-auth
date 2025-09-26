@@ -13,6 +13,7 @@ nimbus_auth_proto = { path = "../proto" }
 # Workspace dependencies
 time.workspace = true
 ulid.workspace = true
+zeroize.workspace = true
 
 # Runtime
 tokio = { version = "1.45.1", features = ["full"] }

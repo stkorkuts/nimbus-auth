@@ -1,3 +1,5 @@
+use std::str::Utf8Error;
+
 use ed25519_dalek::pkcs8::{self};
 use thiserror::Error;
 
@@ -7,6 +9,8 @@ pub enum KeyPairValueError {
     Pkcs8Error(#[from] pkcs8::Error),
     #[error(transparent)]
     Pkcs8SpkiError(#[from] pkcs8::spki::Error),
+    #[error(transparent)]
+    Utf8(#[from] Utf8Error),
     #[error("invalid private key format")]
     InvalidPrivateKeyFormat,
     #[error("invalid public key format")]
