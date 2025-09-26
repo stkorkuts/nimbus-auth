@@ -18,7 +18,7 @@ pub trait UserRepository: Send + Sync {
     ) -> StaticPinnedFuture<Box<dyn UserRepositoryWithTransaction>, UserRepositoryError>;
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError>;
     fn get_by_name(
         &self,
@@ -36,7 +36,7 @@ pub trait UserRepositoryWithTransaction: Send + Sync {
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), UserRepositoryError>;
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,

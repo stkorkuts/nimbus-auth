@@ -66,11 +66,35 @@ pub enum SomeKeyPair {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum SomeKeyPairRef<'a> {
     Active(&'a KeyPair<Active>),
     Expiring(&'a KeyPair<Expiring>),
     Expired(&'a KeyPair<Expired>),
     Revoked(&'a KeyPair<Revoked>),
+}
+
+impl<'a> SomeKeyPairRef<'a> {
+    pub fn deref_clone(&self) -> SomeKeyPair {
+        match self.clone() {
+            SomeKeyPairRef::Active(keypair_ref) => SomeKeyPair::Active {
+                id: Identifier::from(*keypair_ref.id().value()),
+                keypair: keypair_ref.clone(),
+            },
+            SomeKeyPairRef::Expiring(keypair_ref) => SomeKeyPair::Expiring {
+                id: Identifier::from(*keypair_ref.id().value()),
+                keypair: keypair_ref.clone(),
+            },
+            SomeKeyPairRef::Revoked(keypair_ref) => SomeKeyPair::Revoked {
+                id: Identifier::from(*keypair_ref.id().value()),
+                keypair: keypair_ref.clone(),
+            },
+            SomeKeyPairRef::Expired(keypair_ref) => SomeKeyPair::Expired {
+                id: Identifier::from(*keypair_ref.id().value()),
+                keypair: keypair_ref.clone(),
+            },
+        }
+    }
 }
 
 impl<State: KeyPairState> Entity<Ulid> for KeyPair<State> {

@@ -5,10 +5,14 @@ use nimbus_auth_application::services::keypair_repository::{
     KeyPairRepository, KeyPairRepositoryWithTransaction, errors::KeyPairRepositoryError,
 };
 use nimbus_auth_domain::{
-    entities::keypair::{Active, KeyPair, SomeKeyPair, SomeKeyPairRef},
+    entities::{
+        Entity,
+        keypair::{Active, KeyPair, SomeKeyPair, SomeKeyPairRef},
+    },
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
+use tokio::sync::Mutex;
 use ulid::Ulid;
 
 use crate::tests::mocks::datastore::MockDatastore;
@@ -17,8 +21,14 @@ pub struct MockKeyPairRepository {
     datastore: Arc<MockDatastore>,
 }
 
+struct KeyPairSave {
+    old: Option<SomeKeyPair>,
+    new: SomeKeyPair,
+}
+
 pub struct MockKeyPairRepositoryWithTransaction {
     datastore: Arc<MockDatastore>,
+    keypair_saves: Arc<Mutex<Vec<KeyPairSave>>>,
 }
 
 impl MockKeyPairRepository {
@@ -35,6 +45,7 @@ impl KeyPairRepository for MockKeyPairRepository {
         pin_static_future(async move {
             Ok(Box::new(MockKeyPairRepositoryWithTransaction {
                 datastore: datastore_clone,
+                keypair_saves: Arc::new(Mutex::new(Vec::new())),
             }) as Box<dyn KeyPairRepositoryWithTransaction>)
         })
     }
@@ -43,25 +54,62 @@ impl KeyPairRepository for MockKeyPairRepository {
         &self,
         id: &Identifier<Ulid, SomeKeyPair>,
     ) -> StaticPinnedFuture<Option<SomeKeyPair>, KeyPairRepositoryError> {
-        todo!()
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        let id_clone = id.clone();
+        pin_static_future(async move {
+            Ok(datastore_clone
+                .keypairs()
+                .get(&id_clone)
+                .map(|keypair_ref| keypair_ref.value().clone()))
+        })
     }
 
     fn get_active(&self) -> StaticPinnedFuture<Option<KeyPair<Active>>, KeyPairRepositoryError> {
-        todo!()
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        pin_static_future(async move {
+            Ok(datastore_clone
+                .keypairs()
+                .iter()
+                .find_map(|entry| match entry.value() {
+                    SomeKeyPair::Active { keypair, .. } => Some(keypair.clone()),
+                    _ => None,
+                }))
+        })
     }
 
     fn save(&self, keypair: SomeKeyPairRef) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
-        todo!()
+        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        let keypair_clone = keypair.deref_clone();
+        pin_static_future(async move {
+            datastore_clone
+                .keypairs()
+                .insert(keypair_clone.id().clone(), keypair_clone);
+            Ok(())
+        })
     }
 }
 
 impl KeyPairRepositoryWithTransaction for MockKeyPairRepositoryWithTransaction {
     fn commit(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
-        todo!()
+        pin_static_future(async { Ok(()) })
     }
 
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
-        todo!()
+        pin_static_future(async move {
+            let mut saves = self.keypair_saves.lock().await;
+            let keypairs = self.datastore.keypairs();
+            while let Some(save) = saves.pop() {
+                match save.old {
+                    Some(old) => {
+                        keypairs.insert(old.id().clone(), old.clone());
+                    }
+                    None => {
+                        keypairs.remove(save.new.id());
+                    }
+                }
+            }
+            Ok(())
+        })
     }
 
     fn get_by_id(
@@ -74,7 +122,15 @@ impl KeyPairRepositoryWithTransaction for MockKeyPairRepositoryWithTransaction {
         ),
         KeyPairRepositoryError,
     > {
-        todo!()
+        let id_clone = id.clone();
+        pin_static_future(async move {
+            let keypair = self
+                .datastore
+                .keypairs()
+                .get(&id_clone)
+                .map(|keypair_ref| keypair_ref.value().clone());
+            Ok((self as Box<dyn KeyPairRepositoryWithTransaction>, keypair))
+        })
     }
 
     fn get_active(
@@ -86,7 +142,17 @@ impl KeyPairRepositoryWithTransaction for MockKeyPairRepositoryWithTransaction {
         ),
         KeyPairRepositoryError,
     > {
-        todo!()
+        pin_static_future(async move {
+            let keypair = self
+                .datastore
+                .keypairs()
+                .iter()
+                .find_map(|entry| match entry.value() {
+                    SomeKeyPair::Active { keypair, .. } => Some(keypair.clone()),
+                    _ => None,
+                });
+            Ok((self as Box<dyn KeyPairRepositoryWithTransaction>, keypair))
+        })
     }
 
     fn save(
@@ -94,6 +160,24 @@ impl KeyPairRepositoryWithTransaction for MockKeyPairRepositoryWithTransaction {
         keypair: SomeKeyPairRef,
     ) -> StaticPinnedFuture<(Box<dyn KeyPairRepositoryWithTransaction>, ()), KeyPairRepositoryError>
     {
-        todo!()
+        let keypair_clone = keypair.deref_clone();
+        pin_static_future(async move {
+            let old = self
+                .datastore
+                .keypairs()
+                .insert(keypair_clone.id().clone(), keypair_clone.clone());
+
+            let save_record = KeyPairSave {
+                old,
+                new: keypair_clone,
+            };
+
+            {
+                let mut saves = self.keypair_saves.lock().await;
+                saves.push(save_record);
+            }
+
+            Ok((self as Box<dyn KeyPairRepositoryWithTransaction>, ()))
+        })
     }
 }

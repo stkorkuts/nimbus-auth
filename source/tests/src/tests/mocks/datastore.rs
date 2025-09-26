@@ -51,4 +51,8 @@ impl MockDatastore {
     pub fn sessions(&self) -> Arc<DashMap<Identifier<Ulid, SomeSession>, SomeSession>> {
         self.sessions.clone()
     }
+
+    pub fn keypairs(&self) -> Arc<DashMap<Identifier<Ulid, SomeKeyPair>, SomeKeyPair>> {
+        self.keypairs.clone()
+    }
 }

@@ -57,11 +57,30 @@ pub enum SomeSession {
     },
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum SomeSessionRef<'a> {
     Active(&'a Session<Active>),
     Revoked(&'a Session<Revoked>),
     Expired(&'a Session<Expired>),
+}
+
+impl<'a> SomeSessionRef<'a> {
+    pub fn deref_clone(&self) -> SomeSession {
+        match self.clone() {
+            SomeSessionRef::Active(session_ref) => SomeSession::Active {
+                id: Identifier::from(*session_ref.id().value()),
+                session: session_ref.clone(),
+            },
+            SomeSessionRef::Revoked(session_ref) => SomeSession::Revoked {
+                id: Identifier::from(*session_ref.id().value()),
+                session: session_ref.clone(),
+            },
+            SomeSessionRef::Expired(session_ref) => SomeSession::Expired {
+                id: Identifier::from(*session_ref.id().value()),
+                session: session_ref.clone(),
+            },
+        }
+    }
 }
 
 impl<State: SessionState> Entity<Ulid> for Session<State> {
@@ -80,25 +99,6 @@ impl Entity<Ulid> for SomeSession {
             SomeSession::Active { id, .. } => id,
             SomeSession::Revoked { id, .. } => id,
             SomeSession::Expired { id, .. } => id,
-        }
-    }
-}
-
-impl<'a> SomeSessionRef<'a> {
-    pub fn deref_clone(&self) -> SomeSession {
-        match self.clone() {
-            SomeSessionRef::Active(session_ref) => SomeSession::Active {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
-            SomeSessionRef::Revoked(session_ref) => SomeSession::Revoked {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
-            SomeSessionRef::Expired(session_ref) => SomeSession::Expired {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
         }
     }
 }

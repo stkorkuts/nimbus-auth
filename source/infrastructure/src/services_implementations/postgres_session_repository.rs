@@ -64,7 +64,7 @@ impl SessionRepository for PostgresSessionRepository {
 
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
         todo!()
     }
@@ -104,7 +104,7 @@ impl SessionRepositoryWithTransaction for PostgresSessionRepositoryWithTransacti
 
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn SessionRepositoryWithTransaction>,

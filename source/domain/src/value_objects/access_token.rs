@@ -53,7 +53,7 @@ impl AccessToken {
         &self.expires_at
     }
 
-    pub fn sign(&self, key_pair: &KeyPair<Active>) -> Result<String, SignAccessTokenError> {
+    pub fn sign(&self, keypair: &KeyPair<Active>) -> Result<String, SignAccessTokenError> {
         let header = Header::new(jsonwebtoken::Algorithm::RS256);
 
         let expiration_timestamp = self.expires_at.unix_timestamp() as usize;
@@ -62,10 +62,10 @@ impl AccessToken {
             exp: expiration_timestamp,
             iss: ACCESS_TOKEN_ISSUER.to_string(),
             sub: self.user_id.to_string(),
-            kid: key_pair.id().to_string(),
+            kid: keypair.id().to_string(),
         };
 
-        let key = EncodingKey::from_ed_pem(&key_pair.value().private_key_pem())
+        let key = EncodingKey::from_ed_pem(&keypair.value().private_key_pem())
             .map_err(SignAccessTokenError::InvalidPrivateKeyFormat)?;
 
         let token = encode(&header, &claims, &key).map_err(SignAccessTokenError::EncodingError)?;

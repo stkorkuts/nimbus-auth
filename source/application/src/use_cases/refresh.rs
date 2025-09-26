@@ -31,7 +31,7 @@ pub async fn handle_refresh(
     access_token_exp_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RefreshResponse, RefreshError> {
     let session = session_repository
-        .get_by_id(Identifier::from(Ulid::from_string(&session_id)?))
+        .get_by_id(&Identifier::from(Ulid::from_string(&session_id)?))
         .await?
         .ok_or(RefreshError::SessionIsNotFound)?;
 

@@ -72,7 +72,7 @@ impl UserRepository for PostgresUserRepository {
 
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let db_clone = self.database.clone();
         let id = id.to_string();
@@ -172,7 +172,7 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
 
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,

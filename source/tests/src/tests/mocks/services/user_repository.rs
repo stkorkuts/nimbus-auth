@@ -56,13 +56,14 @@ impl UserRepository for MockUserRepository {
 
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        let id_clone = id.clone();
         pin_static_future(async move {
             Ok(datastore_clone
                 .users()
-                .get(&id)
+                .get(&id_clone)
                 .map(|user_ref| user_ref.value().clone()))
         })
     }
@@ -133,16 +134,17 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
 
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, User>,
+        id: &Identifier<Ulid, User>,
     ) -> StaticPinnedFuture<
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
+        let id_clone = id.clone();
         pin_static_future(async move {
             let user = self
                 .datastore
                 .users()
-                .get(&id)
+                .get(&id_clone)
                 .map(|user_ref| user_ref.value().clone());
             Ok((self as Box<dyn UserRepositoryWithTransaction>, user))
         })

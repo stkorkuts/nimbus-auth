@@ -54,13 +54,14 @@ impl SessionRepository for MockSessionRepository {
 
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
         let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        let id_clone = id.clone();
         pin_static_future(async move {
             Ok(datastore_clone
                 .sessions()
-                .get(&id)
+                .get(&id_clone)
                 .map(|session_ref| session_ref.value().clone()))
         })
     }
@@ -102,7 +103,7 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
 
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn SessionRepositoryWithTransaction>,
@@ -110,13 +111,14 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
         ),
         SessionRepositoryError,
     > {
+        let id_clone = id.clone();
         pin_static_future(async move {
-            let user = self
+            let session = self
                 .datastore
                 .sessions()
-                .get(&id)
+                .get(&id_clone)
                 .map(|session_ref| session_ref.value().clone());
-            Ok((self as Box<dyn SessionRepositoryWithTransaction>, user))
+            Ok((self as Box<dyn SessionRepositoryWithTransaction>, session))
         })
     }
 

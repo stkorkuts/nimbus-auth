@@ -15,7 +15,7 @@ pub trait SessionRepository: Send + Sync {
     ) -> StaticPinnedFuture<Box<dyn SessionRepositoryWithTransaction>, SessionRepositoryError>;
     fn get_by_id(
         &self,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError>;
     fn save(&self, session: SomeSessionRef) -> StaticPinnedFuture<(), SessionRepositoryError>;
 }
@@ -25,7 +25,7 @@ pub trait SessionRepositoryWithTransaction: Send + Sync {
     fn rollback(self: Box<Self>) -> StaticPinnedFuture<(), SessionRepositoryError>;
     fn get_by_id(
         self: Box<Self>,
-        id: Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn SessionRepositoryWithTransaction>,
