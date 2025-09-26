@@ -1,8 +1,10 @@
+use zeroize::Zeroizing;
+
 use crate::use_cases::UserDto;
 
 pub struct SignInRequest<'a> {
     pub user_name: &'a str,
-    pub password: &'a str,
+    pub password: &'a Zeroizing<String>,
 }
 
 pub struct SignInResponse {
