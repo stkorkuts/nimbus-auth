@@ -4,8 +4,7 @@ use nimbus_auth_domain::{
     entities::{
         Entity,
         keypair::{
-            KeyPair, SomeKeyPair, specifications::NewKeyPairSpecification,
-            value_objects::KeyPairValue,
+            SomeKeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
         },
     },
     value_objects::identifier::{Identifier, IdentifierOfType},
@@ -20,7 +19,7 @@ use nimbus_auth_shared::{
 use prost::Message;
 use reqwest::Client;
 
-use crate::tests::integration::{IntegrationTestState, run_integration_test};
+use crate::tests::integration::api::{ApiTestState, run_api_test};
 
 const SERVER_ADDR: &str = "localhost:5001";
 const KEYPAIRS_STORE_PATH: &str = "/temp";
@@ -32,7 +31,7 @@ MC4CAQAwBQYDK2VwBCIEIMUBs5zfkuEGgSLwrUo2vln82Z8hUySsoI+dyA3AonDV
 ";
 
 #[tokio::test]
-async fn test_signup_success() -> Result<(), Box<dyn Error>> {
+async fn test_valid_data_no_existing_user_success() -> Result<(), Box<dyn Error>> {
     let app_config = AppConfigBuilder::new(AppConfigRequiredOptions {
         server_addr: SERVER_ADDR.to_string(),
         keypairs_store_path: PathBuf::from_str(KEYPAIRS_STORE_PATH)?,
@@ -44,7 +43,7 @@ async fn test_signup_success() -> Result<(), Box<dyn Error>> {
         value: KeyPairValue::from(PRIVATE_KEY_PEM)?,
     });
 
-    let test_state = IntegrationTestState {
+    let test_state = ApiTestState {
         users: None,
         sessions: None,
         keypairs: Some(vec![SomeKeyPair::Active {
@@ -53,7 +52,7 @@ async fn test_signup_success() -> Result<(), Box<dyn Error>> {
         }]),
     };
 
-    run_integration_test(test_action, app_config, test_state)
+    run_api_test(test_action, app_config, test_state)
         .await
         .map_err(|boxed| boxed.inner())
 }
