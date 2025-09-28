@@ -17,7 +17,7 @@ zeroize.workspace = true
 
 # Crypto
 ed25519-dalek = { version = "2.2.0", features = ["pkcs8", "pem"] }
-argon2 = { version = "0.5.3" }
+argon2 = { version = "0.5.3", features = ["zeroize"] }
 
 # JWT
 jsonwebtoken = "9.3.1"

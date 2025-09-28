@@ -26,3 +26,6 @@ reqwest = { version = "0.12" }
 
 # Utilities
 dashmap = { version = "6.1.0" }
+
+# Crypto
+argon2 = { version = "0.5.3", features = ["zeroize"] }
