@@ -12,9 +12,9 @@ pub struct AppConfigBuilder {
     server_addr: String,
     keypairs_store_path: PathBuf,
     postgres_db_url: String,
-    session_expiration_seconds: Option<u32>,
-    access_token_expiration_seconds: Option<u32>,
-    postgres_db_max_connections: Option<u32>,
+    session_expiration_seconds: Option<usize>,
+    access_token_expiration_seconds: Option<usize>,
+    postgres_db_max_connections: Option<usize>,
 }
 
 #[derive(Clone)]
@@ -51,17 +51,17 @@ impl AppConfigBuilder {
         }
     }
 
-    pub fn with_session_expiration_seconds(&mut self, seconds: u32) -> &mut Self {
+    pub fn with_session_expiration_seconds(&mut self, seconds: usize) -> &mut Self {
         self.session_expiration_seconds = Some(seconds);
         self
     }
 
-    pub fn with_access_token_expiration_seconds(&mut self, seconds: u32) -> &mut Self {
+    pub fn with_access_token_expiration_seconds(&mut self, seconds: usize) -> &mut Self {
         self.access_token_expiration_seconds = Some(seconds);
         self
     }
 
-    pub fn with_postgres_db_max_connections(&mut self, connections: u32) -> &mut Self {
+    pub fn with_postgres_db_max_connections(&mut self, connections: usize) -> &mut Self {
         self.postgres_db_max_connections = Some(connections);
         self
     }

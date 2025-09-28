@@ -44,7 +44,13 @@ pub enum PostgresTransactionRequest<TRequest, TResponse, TError> {
 impl PostgresDatabase {
     pub async fn new(config: &AppConfig) -> Result<Self, PostgresDatabaseError> {
         let pool = PgPoolOptions::new()
-            .max_connections(config.postgres_db_max_connections().0)
+            .max_connections(
+                config
+                    .postgres_db_max_connections()
+                    .0
+                    .try_into()
+                    .map_err(ErrorBoxed::from)?,
+            )
             .acquire_timeout(Duration::from_secs(30))
             .idle_timeout(Duration::from_secs(600))
             .max_lifetime(Duration::from_secs(1800))

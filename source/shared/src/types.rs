@@ -1,8 +1,8 @@
 #[derive(Clone, Copy)]
-pub struct SessionExpirationSeconds(pub u32);
+pub struct SessionExpirationSeconds(pub usize);
 
 #[derive(Clone, Copy)]
-pub struct AccessTokenExpirationSeconds(pub u32);
+pub struct AccessTokenExpirationSeconds(pub usize);
 
 #[derive(Clone, Copy)]
-pub struct PostgresDbMaxConnections(pub u32);
+pub struct PostgresDbMaxConnections(pub usize);
