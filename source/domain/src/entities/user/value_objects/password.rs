@@ -67,12 +67,13 @@ impl Password {
     }
 
     fn validate(value: &str) -> Result<(), PasswordError> {
-        if value.len() < PASSWORD_MIN_LENGTH_INCLUSIVE {
+        let length = value.len();
+        if length < PASSWORD_MIN_LENGTH_INCLUSIVE {
             return Err(PasswordError::TooShort {
                 min_length: PASSWORD_MIN_LENGTH_INCLUSIVE,
             });
         }
-        if value.len() > PASSWORD_MAX_LENGTH_INCLUSIVE {
+        if length > PASSWORD_MAX_LENGTH_INCLUSIVE {
             return Err(PasswordError::TooLong {
                 max_length: PASSWORD_MAX_LENGTH_INCLUSIVE,
             });

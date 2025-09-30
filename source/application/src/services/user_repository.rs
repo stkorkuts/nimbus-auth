@@ -1,7 +1,7 @@
 use nimbus_auth_domain::{
     entities::{
         session::{Active, Session},
-        user::{User, value_objects::name::UserName},
+        user::{User, value_objects::user_name::UserName},
     },
     value_objects::identifier::Identifier,
 };

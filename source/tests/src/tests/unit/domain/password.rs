@@ -14,14 +14,24 @@ fn valid_password() {
 fn short_password() {
     let short_password_str = "A".repeat(PASSWORD_MIN_LENGTH_INCLUSIVE - 1);
     let result = Password::from(&Zeroizing::new(short_password_str.to_string()));
-    assert!(matches!(result, Err(PasswordError::TooShort { .. })))
+    assert!(matches!(
+        result,
+        Err(PasswordError::TooShort {
+            min_length: PASSWORD_MIN_LENGTH_INCLUSIVE
+        })
+    ))
 }
 
 #[test]
 fn long_password() {
     let long_password_str = "A".repeat(PASSWORD_MAX_LENGTH_INCLUSIVE + 1);
     let result = Password::from(&Zeroizing::new(long_password_str.to_string()));
-    assert!(matches!(result, Err(PasswordError::TooLong { .. })))
+    assert!(matches!(
+        result,
+        Err(PasswordError::TooLong {
+            max_length: PASSWORD_MAX_LENGTH_INCLUSIVE
+        })
+    ))
 }
 
 #[test]

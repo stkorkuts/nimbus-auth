@@ -25,11 +25,11 @@ fn invalid_salt() {
 }
 
 #[test]
-fn invalid_password() {
-    let invalid_password = "WrongPassword123!";
+fn wrong_password() {
+    let wrong_password = "WrongPassword123!";
     let salt = SaltString::generate(&mut OsRng);
     let password_to_hash = Password::from(&Zeroizing::new(VALID_PASSWORD.to_string())).unwrap();
     let hash = PasswordHash::hash(password_to_hash, salt.as_str()).unwrap();
-    let password_to_verify = Password::from(&Zeroizing::new(invalid_password.to_string())).unwrap();
+    let password_to_verify = Password::from(&Zeroizing::new(wrong_password.to_string())).unwrap();
     assert!(!hash.verify(&password_to_verify))
 }

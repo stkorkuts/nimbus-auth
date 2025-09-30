@@ -85,6 +85,7 @@ impl<'a> UseCases {
             self.services.session_repository.clone(),
             self.services.keypair_repository.clone(),
             self.services.time_service.clone(),
+            self.services.random_service.clone(),
             self.config.session_expiration_seconds,
             self.config.access_token_expiration_seconds,
         )

@@ -5,7 +5,7 @@ use nimbus_auth_domain::entities::{
     session::{Session, SomeSession, SomeSessionRef, specifications::NewSessionSpecification},
     user::{
         User,
-        value_objects::{name::UserName, password::Password},
+        value_objects::{user_name::UserName, password::Password},
     },
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};

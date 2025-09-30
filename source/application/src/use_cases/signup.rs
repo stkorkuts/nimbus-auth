@@ -6,15 +6,16 @@ use nimbus_auth_domain::entities::{
     user::{
         User,
         specifications::NewUserSpecification,
-        value_objects::{name::UserName, password::Password},
+        value_objects::{password::Password, password_hash::PasswordHash, user_name::UserName},
     },
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
 use crate::{
     services::{
-        keypair_repository::KeyPairRepository, session_repository::SessionRepository,
-        time_service::TimeService, user_repository::UserRepository,
+        keypair_repository::KeyPairRepository, random_service::RandomService,
+        session_repository::SessionRepository, time_service::TimeService,
+        user_repository::UserRepository,
     },
     use_cases::{SignUpRequest, SignUpResponse, UserDto, signup::errors::SignUpError},
 };
@@ -31,6 +32,7 @@ pub async fn handle_signup<'a>(
     session_repository: Arc<dyn SessionRepository>,
     keypair_repository: Arc<dyn KeyPairRepository>,
     time_service: Arc<dyn TimeService>,
+    random_service: Arc<dyn RandomService>,
     session_exp_seconds: SessionExpirationSeconds,
     access_token_exp_seconds: AccessTokenExpirationSeconds,
 ) -> Result<SignUpResponse, SignUpError> {
@@ -45,6 +47,8 @@ pub async fn handle_signup<'a>(
     }
 
     let password = Password::from(password)?;
+    let salt_b64 = random_service.get_random_salt_b64().await?;
+    let password_hash = PasswordHash::hash(password, &salt_b64)?;
 
     let active_keypair = keypair_repository
         .get_active()
@@ -53,7 +57,7 @@ pub async fn handle_signup<'a>(
 
     let user = User::new(NewUserSpecification {
         user_name,
-        password,
+        password_hash,
     });
 
     let session = SomeSession::new(NewSessionSpecification {

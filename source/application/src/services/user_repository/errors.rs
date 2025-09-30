@@ -1,5 +1,5 @@
 use nimbus_auth_domain::entities::user::value_objects::{
-    name::errors::UserNameError, password_hash::errors::PasswordHashError,
+    user_name::errors::UserNameError, password_hash::errors::PasswordHashError,
 };
 use nimbus_auth_shared::errors::ErrorBoxed;
 use thiserror::Error;

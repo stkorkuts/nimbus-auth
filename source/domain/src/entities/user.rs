@@ -5,10 +5,10 @@ use crate::{
         Entity,
         user::{
             specifications::{NewUserSpecification, RestoreUserSpecification},
-            value_objects::{name::UserName, password_hash::PasswordHash},
+            value_objects::{password_hash::PasswordHash, user_name::UserName},
         },
     },
-    value_objects::identifier::Identifier,
+    value_objects::identifier::{Identifier, IdentifierOfType},
 };
 
 pub mod errors;
@@ -32,11 +32,19 @@ impl Entity<Ulid> for User {
 
 impl User {
     pub fn new(specs: NewUserSpecification) -> Self {
-        todo!()
+        Self {
+            id: Identifier::new(),
+            name: specs.user_name,
+            password_hash: specs.password_hash,
+        }
     }
 
     pub fn restore(specs: RestoreUserSpecification) -> Self {
-        todo!()
+        Self {
+            id: specs.id,
+            name: specs.user_name,
+            password_hash: specs.password_hash,
+        }
     }
 
     pub fn name(&self) -> &UserName {

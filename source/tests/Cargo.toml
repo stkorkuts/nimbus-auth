@@ -14,6 +14,7 @@ nimbus_auth_proto = { path = "../proto" }
 time.workspace = true
 ulid.workspace = true
 zeroize.workspace = true
+argon2.workspace = true
 
 # Runtime
 tokio = { version = "1.45.1", features = ["full"] }
@@ -26,6 +27,3 @@ reqwest = { version = "0.12" }
 
 # Utilities
 dashmap = { version = "6.1.0" }
-
-# Crypto
-argon2 = { version = "0.5.3", features = ["zeroize"] }

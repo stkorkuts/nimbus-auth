@@ -32,7 +32,7 @@ MC4CAQAwBQYDK2VwBCIEIMUBs5zfkuEGgSLwrUo2vln82Z8hUySsoI+dyA3AonDV
 ";
 
 #[tokio::test]
-async fn test_valid_data_no_existing_user_success() -> Result<(), Box<dyn Error>> {
+async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
     let app_config = AppConfigBuilder::new(AppConfigRequiredOptions {
         server_addr: SERVER_ADDR.to_string(),
         keypairs_store_path: PathBuf::from_str(KEYPAIRS_STORE_PATH)?,

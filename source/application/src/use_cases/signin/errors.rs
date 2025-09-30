@@ -1,5 +1,7 @@
 use nimbus_auth_domain::{
-    entities::user::value_objects::{name::errors::UserNameError, password::errors::PasswordError},
+    entities::user::value_objects::{
+        password::errors::PasswordError, user_name::errors::UserNameError,
+    },
     value_objects::access_token::errors::SignAccessTokenError,
 };
 use thiserror::Error;

@@ -5,7 +5,7 @@ use nimbus_auth_domain::{
         user::{
             User,
             specifications::RestoreUserSpecification,
-            value_objects::{name::UserName, password_hash::PasswordHash},
+            value_objects::{user_name::UserName, password_hash::PasswordHash},
         },
     },
     value_objects::identifier::Identifier,

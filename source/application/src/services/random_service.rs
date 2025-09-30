@@ -9,4 +9,5 @@ pub trait RandomService: Send + Sync {
     fn get_random_private_key_pem(
         &self,
     ) -> StaticPinnedFuture<Zeroizing<String>, RandomServiceError>;
+    fn get_random_salt_b64(&self) -> StaticPinnedFuture<String, RandomServiceError>;
 }

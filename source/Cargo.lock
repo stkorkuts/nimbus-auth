@@ -1239,6 +1239,7 @@ dependencies = [
 name = "nimbus_auth_infrastructure"
 version = "0.1.0"
 dependencies = [
+ "argon2",
  "axum",
  "ed25519-dalek",
  "nimbus_auth_application",

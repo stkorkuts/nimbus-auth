@@ -3,14 +3,14 @@ use ulid::Ulid;
 use crate::{
     entities::user::{
         User,
-        value_objects::{name::UserName, password::Password, password_hash::PasswordHash},
+        value_objects::{password_hash::PasswordHash, user_name::UserName},
     },
     value_objects::identifier::Identifier,
 };
 
 pub struct NewUserSpecification {
     pub user_name: UserName,
-    pub password: Password,
+    pub password_hash: PasswordHash,
 }
 
 pub struct RestoreUserSpecification {
