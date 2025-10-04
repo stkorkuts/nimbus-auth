@@ -1,3 +1,5 @@
+use std::{borrow::Cow, ops::Deref};
+
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 use time::OffsetDateTime;
 use ulid::Ulid;
@@ -42,45 +44,10 @@ pub struct Session<State: SessionState> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SomeSession {
-    Active {
-        id: Identifier<Ulid, SomeSession>,
-        session: Session<Active>,
-    },
-    Revoked {
-        id: Identifier<Ulid, SomeSession>,
-        session: Session<Revoked>,
-    },
-    Expired {
-        id: Identifier<Ulid, SomeSession>,
-        session: Session<Expired>,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum SomeSessionRef<'a> {
-    Active(&'a Session<Active>),
-    Revoked(&'a Session<Revoked>),
-    Expired(&'a Session<Expired>),
-}
-
-impl<'a> SomeSessionRef<'a> {
-    pub fn deref_clone(&self) -> SomeSession {
-        match self.clone() {
-            SomeSessionRef::Active(session_ref) => SomeSession::Active {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
-            SomeSessionRef::Revoked(session_ref) => SomeSession::Revoked {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
-            SomeSessionRef::Expired(session_ref) => SomeSession::Expired {
-                id: Identifier::from(*session_ref.id().value()),
-                session: session_ref.clone(),
-            },
-        }
-    }
+pub enum SomeSession<'a> {
+    Active(Cow<'a, Session<Active>>),
+    Revoked(Cow<'a, Session<Revoked>>),
+    Expired(Cow<'a, Session<Expired>>),
 }
 
 impl<State: SessionState> Entity<Ulid> for Session<State> {
@@ -91,14 +58,14 @@ impl<State: SessionState> Entity<Ulid> for Session<State> {
     }
 }
 
-impl Entity<Ulid> for SomeSession {
-    type Id = Identifier<Ulid, SomeSession>;
+impl<'a> Entity<Ulid> for SomeSession<'a> {
+    type Id = Identifier<Ulid, SomeSession<'a>>;
 
     fn id(&self) -> &Self::Id {
         match self {
-            SomeSession::Active { id, .. } => id,
-            SomeSession::Revoked { id, .. } => id,
-            SomeSession::Expired { id, .. } => id,
+            SomeSession::Active(session) => session.id.as_other_entity_ref(),
+            SomeSession::Revoked(session) => session.id.as_other_entity_ref(),
+            SomeSession::Expired(session) => session.id.as_other_entity_ref(),
         }
     }
 }
@@ -107,7 +74,7 @@ impl SessionState for Active {}
 impl SessionState for Expired {}
 impl SessionState for Revoked {}
 
-impl SomeSession {
+impl SomeSession<'_> {
     pub fn new(
         NewSessionSpecification {
             user_id,
@@ -132,22 +99,22 @@ impl SomeSession {
             expires_at,
             current_time,
         }: RestoreSessionSpecification,
-    ) -> SomeSession {
+    ) -> SomeSession<'static> {
         match revoked_at {
             Some(revoked_at) => SomeSession::from(Session {
-                id: Identifier::from(*id.value()),
+                id: id.as_other_entity(),
                 state: Revoked { revoked_at },
             }),
             None => match (expires_at - current_time).whole_seconds() > 0 {
                 true => SomeSession::from(Session {
-                    id: Identifier::from(*id.value()),
+                    id: id.as_other_entity(),
                     state: Active {
                         user_id,
                         expires_at,
                     },
                 }),
                 false => SomeSession::from(Session {
-                    id: Identifier::from(*id.value()),
+                    id: id.as_other_entity(),
                     state: Expired {
                         expired_at: expires_at,
                     },
@@ -155,12 +122,27 @@ impl SomeSession {
             },
         }
     }
+
+    pub fn into_owned(&self) -> SomeSession<'static> {
+        match self {
+            SomeSession::Active(cow) => SomeSession::Active(Cow::Owned(cow.clone().into_owned())),
+            SomeSession::Revoked(cow) => SomeSession::Revoked(Cow::Owned(cow.clone().into_owned())),
+            SomeSession::Expired(cow) => SomeSession::Expired(Cow::Owned(cow.clone().into_owned())),
+        }
+    }
+}
+
+impl<State: SessionState> Deref for Session<State> {
+    type Target = State;
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
 }
 
 impl Session<Active> {
     pub fn revoke(self, current_time: OffsetDateTime) -> Session<Revoked> {
         Session {
-            id: Identifier::from(*self.id.value()),
+            id: self.id.as_other_entity(),
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -172,15 +154,16 @@ impl Session<Active> {
         current_time: OffsetDateTime,
         expiration_seconds: SessionExpirationSeconds,
     ) -> (Session<Revoked>, Session<Active>) {
+        let user_id = self.user_id.clone();
         (
             Session {
-                id: Identifier::from(*self.id.value()),
+                id: self.id.as_other_entity(),
                 state: Revoked {
                     revoked_at: current_time,
                 },
             },
             SomeSession::new(NewSessionSpecification {
-                user_id: self.state.user_id.clone(),
+                user_id,
                 current_time,
                 expiration_seconds,
             }),
@@ -192,71 +175,46 @@ impl Session<Active> {
         current_time: OffsetDateTime,
         expiration_seconds: AccessTokenExpirationSeconds,
     ) -> AccessToken {
-        AccessToken::new(self.state.user_id.clone(), current_time, expiration_seconds)
+        AccessToken::new(self.user_id.clone(), current_time, expiration_seconds)
     }
 
     pub fn expires_at(&self) -> OffsetDateTime {
-        self.state.expires_at
+        self.expires_at
     }
 
     pub fn user_id(&self) -> &Identifier<Ulid, User> {
-        &self.state.user_id
+        &self.user_id
     }
 }
 
 impl Session<Revoked> {
     pub fn revoked_at(&self) -> OffsetDateTime {
-        self.state.revoked_at
+        self.revoked_at
     }
 }
 
 impl Session<Expired> {
     pub fn expired_at(&self) -> OffsetDateTime {
-        self.state.expired_at
+        self.expired_at
     }
 }
 
-impl From<Session<Active>> for SomeSession {
-    fn from(session: Session<Active>) -> Self {
-        SomeSession::Active {
-            id: Identifier::from(*session.id().value()),
-            session,
+macro_rules! impl_from_session_for_somesession {
+    ($state:ty, $variant:ident) => {
+        impl From<Session<$state>> for SomeSession<'static> {
+            fn from(session: Session<$state>) -> Self {
+                SomeSession::$variant(Cow::Owned(session))
+            }
         }
-    }
-}
 
-impl From<Session<Expired>> for SomeSession {
-    fn from(session: Session<Expired>) -> Self {
-        SomeSession::Expired {
-            id: Identifier::from(*session.id().value()),
-            session,
+        impl<'a> From<&'a Session<$state>> for SomeSession<'a> {
+            fn from(session: &'a Session<$state>) -> Self {
+                SomeSession::$variant(Cow::Borrowed(session))
+            }
         }
-    }
+    };
 }
 
-impl From<Session<Revoked>> for SomeSession {
-    fn from(session: Session<Revoked>) -> Self {
-        SomeSession::Revoked {
-            id: Identifier::from(*session.id().value()),
-            session,
-        }
-    }
-}
-
-impl<'a> From<&'a Session<Active>> for SomeSessionRef<'a> {
-    fn from(session: &'a Session<Active>) -> Self {
-        SomeSessionRef::Active(session)
-    }
-}
-
-impl<'a> From<&'a Session<Expired>> for SomeSessionRef<'a> {
-    fn from(session: &'a Session<Expired>) -> Self {
-        SomeSessionRef::Expired(session)
-    }
-}
-
-impl<'a> From<&'a Session<Revoked>> for SomeSessionRef<'a> {
-    fn from(session: &'a Session<Revoked>) -> Self {
-        SomeSessionRef::Revoked(session)
-    }
-}
+impl_from_session_for_somesession!(Active, Active);
+impl_from_session_for_somesession!(Expired, Expired);
+impl_from_session_for_somesession!(Revoked, Revoked);

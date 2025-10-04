@@ -4,10 +4,7 @@ use nimbus_auth_application::services::session_repository::{
     SessionRepository, SessionRepositoryWithTransaction, errors::SessionRepositoryError,
 };
 use nimbus_auth_domain::{
-    entities::{
-        Entity,
-        session::{SomeSession, SomeSessionRef},
-    },
+    entities::{Entity, session::SomeSession},
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
@@ -20,9 +17,9 @@ pub struct MockSessionRepository {
     datastore: Arc<MockDatastore>,
 }
 
-struct SessionSave {
-    old: Option<SomeSession>,
-    new: SomeSession,
+struct SessionSave<'a> {
+    old: Option<SomeSession<'a>>,
+    new: SomeSession<'a>,
 }
 
 /// Represents mock session repository with active transaction
@@ -30,7 +27,7 @@ struct SessionSave {
 /// Transaction implemented with `ReadUncomitted` isolation level which is sufficient for tests for now
 pub struct MockSessionRepositoryWithTransaction {
     datastore: Arc<MockDatastore>,
-    session_saves: Arc<Mutex<Vec<SessionSave>>>,
+    session_saves: Arc<Mutex<Vec<SessionSave<'static>>>>,
 }
 
 impl MockSessionRepository {
@@ -43,7 +40,7 @@ impl SessionRepository for MockSessionRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn SessionRepositoryWithTransaction>, SessionRepositoryError> {
-        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        let datastore_clone = self.datastore.clone();
         pin_static_future(async move {
             Ok(Box::new(MockSessionRepositoryWithTransaction {
                 datastore: datastore_clone,
@@ -54,9 +51,9 @@ impl SessionRepository for MockSessionRepository {
 
     fn get_by_id(
         &self,
-        id: &Identifier<Ulid, SomeSession>,
-    ) -> StaticPinnedFuture<Option<SomeSession>, SessionRepositoryError> {
-        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
+        id: &Identifier<Ulid, SomeSession<'static>>,
+    ) -> StaticPinnedFuture<Option<SomeSession<'static>>, SessionRepositoryError> {
+        let datastore_clone = self.datastore.clone();
         let id_clone = id.clone();
         pin_static_future(async move {
             Ok(datastore_clone
@@ -66,9 +63,9 @@ impl SessionRepository for MockSessionRepository {
         })
     }
 
-    fn save(&self, session: SomeSessionRef) -> StaticPinnedFuture<(), SessionRepositoryError> {
-        let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
-        let session_clone = session.deref_clone();
+    fn save(&self, session: SomeSession) -> StaticPinnedFuture<(), SessionRepositoryError> {
+        let datastore_clone = self.datastore.clone();
+        let session_clone = session.into_owned();
         pin_static_future(async move {
             datastore_clone
                 .sessions()
@@ -78,7 +75,7 @@ impl SessionRepository for MockSessionRepository {
     }
 }
 
-impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
+impl<'a> SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
     fn commit(self: Box<Self>) -> StaticPinnedFuture<(), SessionRepositoryError> {
         pin_static_future(async { Ok(()) })
     }
@@ -103,11 +100,11 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
 
     fn get_by_id(
         self: Box<Self>,
-        id: &Identifier<Ulid, SomeSession>,
+        id: &Identifier<Ulid, SomeSession<'static>>,
     ) -> StaticPinnedFuture<
         (
             Box<dyn SessionRepositoryWithTransaction>,
-            Option<SomeSession>,
+            Option<SomeSession<'static>>,
         ),
         SessionRepositoryError,
     > {
@@ -124,10 +121,10 @@ impl SessionRepositoryWithTransaction for MockSessionRepositoryWithTransaction {
 
     fn save(
         self: Box<Self>,
-        session: SomeSessionRef,
+        session: SomeSession,
     ) -> StaticPinnedFuture<(Box<dyn SessionRepositoryWithTransaction>, ()), SessionRepositoryError>
     {
-        let session_clone = session.deref_clone();
+        let session_clone = session.into_owned();
         pin_static_future(async move {
             let old = self
                 .datastore

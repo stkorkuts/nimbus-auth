@@ -15,6 +15,24 @@ pub struct Identifier<TValue, TEntity: Entity<TValue>> {
     value: TValue,
 }
 
+impl<TValue, TEntity: Entity<TValue>> Identifier<TValue, TEntity> {
+    pub fn as_other_entity<TOtherEntity: Entity<TValue>>(self) -> Identifier<TValue, TOtherEntity> {
+        Identifier {
+            _marker: PhantomData,
+            value: self.value,
+        }
+    }
+
+    pub fn as_other_entity_ref<TOtherEntity: Entity<TValue>>(
+        &self,
+    ) -> &Identifier<TValue, TOtherEntity> {
+        unsafe {
+            &*(self as *const Identifier<TValue, TEntity>
+                as *const Identifier<TValue, TOtherEntity>)
+        }
+    }
+}
+
 impl<TValue: PartialEq, TEntity: Entity<TValue>> PartialEq for Identifier<TValue, TEntity> {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
@@ -32,7 +50,7 @@ impl<TValue: hash::Hash, TEntity: Entity<TValue>> hash::Hash for Identifier<TVal
 impl<TValue: Clone, TEntity: Entity<TValue>> Clone for Identifier<TValue, TEntity> {
     fn clone(&self) -> Self {
         Self {
-            _marker: self._marker,
+            _marker: PhantomData,
             value: self.value.clone(),
         }
     }

@@ -1,12 +1,9 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use nimbus_auth_domain::entities::{
     Entity,
-    session::{Session, SomeSession, SomeSessionRef, specifications::NewSessionSpecification},
-    user::{
-        User,
-        value_objects::{user_name::UserName, password::Password},
-    },
+    session::{SomeSession, specifications::NewSessionSpecification},
+    user::value_objects::{password::Password, user_name::UserName},
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 
@@ -69,7 +66,7 @@ pub async fn handle_signin<'a>(
     let transactional_session_repository = session_repository.start_transaction().await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(SomeSessionRef::Active(&session))
+        .save(SomeSession::Active(Cow::Borrowed(&session)))
         .await?;
 
     let access_token = &session.generate_access_token(

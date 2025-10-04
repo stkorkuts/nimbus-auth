@@ -1,10 +1,7 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use nimbus_auth_domain::{
-    entities::{
-        Entity,
-        session::{Session, SomeSession, SomeSessionRef},
-    },
+    entities::{Entity, session::SomeSession},
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
@@ -36,10 +33,11 @@ pub async fn handle_refresh(
         .ok_or(RefreshError::SessionIsNotFound)?;
 
     let active_session = match session {
-        SomeSession::Active { session, .. } => Ok(session),
-        SomeSession::Expired { .. } => Err(RefreshError::SessionIsExpired),
-        SomeSession::Revoked { .. } => Err(RefreshError::SessionIsRevoked),
-    }?;
+        SomeSession::Active(session) => Ok(session),
+        SomeSession::Expired(_) => Err(RefreshError::SessionIsExpired),
+        SomeSession::Revoked(_) => Err(RefreshError::SessionIsRevoked),
+    }?
+    .into_owned();
 
     let user = user_repository
         .get_by_session(&active_session)
@@ -57,11 +55,11 @@ pub async fn handle_refresh(
     let transactional_session_repository = session_repository.start_transaction().await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(SomeSessionRef::Revoked(&revoked_session))
+        .save(SomeSession::Revoked(Cow::Borrowed(&revoked_session)))
         .await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(SomeSessionRef::Active(&new_active_session))
+        .save(SomeSession::Active(Cow::Borrowed(&new_active_session)))
         .await?;
 
     let access_token = &new_active_session.generate_access_token(

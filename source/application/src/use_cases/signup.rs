@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use nimbus_auth_domain::entities::{
     Entity,
-    session::{SomeSession, SomeSessionRef, specifications::NewSessionSpecification},
+    session::{SomeSession, specifications::NewSessionSpecification},
     user::{
         User,
         specifications::NewUserSpecification,
@@ -73,7 +73,7 @@ pub async fn handle_signup<'a>(
     let transactional_session_repository = session_repository.start_transaction().await?;
 
     let (transactional_session_repository, _) = transactional_session_repository
-        .save(SomeSessionRef::Active(&session))
+        .save(SomeSession::Active(Cow::Borrowed(&session)))
         .await?;
 
     let access_token = &session.generate_access_token(

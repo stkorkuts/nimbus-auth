@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use nimbus_auth_application::services::user_repository::{
     UserRepository, UserRepositoryWithTransaction, errors::UserRepositoryError,
 };
@@ -10,7 +9,7 @@ use nimbus_auth_domain::{
         session::{Active, Session},
         user::{User, value_objects::user_name::UserName},
     },
-    value_objects::identifier::{Identifier, IdentifierOfType},
+    value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use tokio::sync::Mutex;

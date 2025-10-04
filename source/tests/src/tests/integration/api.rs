@@ -8,12 +8,7 @@ use nimbus_auth_infrastructure::{
         os_random_service::OsRandomService, os_time_service::OsTimeService,
     },
 };
-use nimbus_auth_shared::{
-    config::AppConfig,
-    constants::{ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT, SESSION_EXPIRATION_SECONDS_DEFAULT},
-    errors::ErrorBoxed,
-    types::{AccessTokenExpirationSeconds, SessionExpirationSeconds},
-};
+use nimbus_auth_shared::{config::AppConfig, errors::ErrorBoxed};
 use tokio::{spawn, sync::oneshot};
 
 use crate::tests::mocks::{
@@ -26,16 +21,16 @@ use crate::tests::mocks::{
 
 mod signup;
 
-struct ApiTestState {
+struct ApiTestState<'a> {
     pub users: Option<Vec<User>>,
-    pub sessions: Option<Vec<SomeSession>>,
+    pub sessions: Option<Vec<SomeSession<'a>>>,
     pub keypairs: Option<Vec<SomeKeyPair>>,
 }
 
 async fn run_api_test<Fut: Future<Output = Result<(), ErrorBoxed>>, TAction: FnOnce() -> Fut>(
     action: TAction,
     config: AppConfig,
-    state: ApiTestState,
+    state: ApiTestState<'static>,
 ) -> Result<(), ErrorBoxed> {
     let use_cases = build_use_cases(&config, state).await?;
 
@@ -56,7 +51,10 @@ async fn run_api_test<Fut: Future<Output = Result<(), ErrorBoxed>>, TAction: FnO
     test_result
 }
 
-async fn build_use_cases(config: &AppConfig, state: ApiTestState) -> Result<UseCases, ErrorBoxed> {
+async fn build_use_cases(
+    config: &AppConfig,
+    state: ApiTestState<'static>,
+) -> Result<UseCases, ErrorBoxed> {
     let use_cases_config = UseCasesConfig {
         session_expiration_seconds: config.session_expiration_seconds(),
         access_token_expiration_seconds: config.access_token_expiration_seconds(),

@@ -174,7 +174,7 @@ impl KeyPair<Active> {
 
     pub fn revoke(self, current_time: OffsetDateTime) -> KeyPair<Revoked> {
         KeyPair {
-            id: Identifier::from(*self.id.value()),
+            id: self.id.as_other_entity(),
             state: Revoked {
                 revoked_at: current_time,
             },
@@ -194,7 +194,7 @@ impl KeyPair<Active> {
     ) -> (KeyPair<Expiring>, KeyPair<Active>) {
         (
             KeyPair {
-                id: Identifier::from(*self.id.value()),
+                id: self.id.as_other_entity(),
                 state: Expiring {
                     value: self.state.value,
                     expires_at: current_time + Duration::seconds((expiration_seconds.0 * 2) as i64),

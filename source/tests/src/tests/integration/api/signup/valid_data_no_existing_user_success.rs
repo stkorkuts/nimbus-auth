@@ -48,7 +48,7 @@ async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
         users: None,
         sessions: None,
         keypairs: Some(vec![SomeKeyPair::Active {
-            id: Identifier::from(*active_keypair.id().value()),
+            id: active_keypair.id().clone().as_other_entity(),
             keypair: active_keypair,
         }]),
     };

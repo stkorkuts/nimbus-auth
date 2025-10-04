@@ -2,9 +2,7 @@ use nimbus_auth_application::services::session_repository::errors::SessionReposi
 use nimbus_auth_domain::{
     entities::{
         Entity,
-        session::{
-            Session, SomeSession, SomeSessionRef, specifications::RestoreSessionSpecification,
-        },
+        session::{SomeSession, specifications::RestoreSessionSpecification},
     },
     value_objects::identifier::Identifier,
 };
@@ -33,7 +31,7 @@ impl GetSessionDb {
     pub fn into_domain(
         self,
         current_time: OffsetDateTime,
-    ) -> Result<SomeSession, SessionRepositoryError> {
+    ) -> Result<SomeSession<'static>, SessionRepositoryError> {
         Ok(SomeSession::restore(RestoreSessionSpecification {
             id: Identifier::from(Ulid::from_string(&self.id).map_err(ErrorBoxed::from)?),
             user_id: Identifier::from(Ulid::from_string(&self.user_id).map_err(ErrorBoxed::from)?),
@@ -44,22 +42,22 @@ impl GetSessionDb {
     }
 }
 
-impl From<SomeSessionRef<'_>> for SaveSessionDb {
-    fn from(value: SomeSessionRef) -> Self {
+impl<'a> From<SomeSession<'a>> for SaveSessionDb {
+    fn from(value: SomeSession<'a>) -> Self {
         match value {
-            SomeSessionRef::Active(session) => SaveSessionDb {
+            SomeSession::Active(session) => SaveSessionDb {
                 id: session.id().to_string(),
                 user_id: Some(session.user_id().to_string()),
                 expires_at: Some(session.expires_at()),
                 revoked_at: None,
             },
-            SomeSessionRef::Expired(session) => SaveSessionDb {
+            SomeSession::Expired(session) => SaveSessionDb {
                 id: session.id().to_string(),
                 user_id: None,
                 expires_at: None,
                 revoked_at: None,
             },
-            SomeSessionRef::Revoked(session) => SaveSessionDb {
+            SomeSession::Revoked(session) => SaveSessionDb {
                 id: session.id().to_string(),
                 user_id: None,
                 expires_at: None,
