@@ -21,7 +21,9 @@ zeroize.workspace = true
 argon2.workspace = true
 
 # Api
-axum = "0.8.4"
+axum = {version = "0.8.4", default-features = false, features = ["http1", "http2", "tokio", "tracing"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.6", features = ["cors", "trace", "set-header"] }
 
 # Protobuf
 prost = "0.12"

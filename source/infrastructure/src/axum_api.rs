@@ -1,12 +1,15 @@
 use axum::{
     Router,
-    routing::{get, post},
+    http::{HeaderName, HeaderValue, Method},
+    routing::{Route, get, post},
 };
 use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_shared::{config::AppConfig, errors::ErrorBoxed};
-use tokio::{
-    net::TcpListener,
-    sync::oneshot::{self, error::RecvError},
+use tokio::{net::TcpListener, sync::oneshot};
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    set_header::SetResponseHeaderLayer,
 };
 
 use crate::axum_api::{
@@ -15,10 +18,12 @@ use crate::axum_api::{
         get_public_key::handle_get_public_key, refresh::handle_refresh,
         rotate_keypairs::handle_rotate_keypairs, signin::handle_signin, signup::handle_signup,
     },
+    middleware::apply_middleware,
 };
 
 pub mod errors;
 mod handlers;
+mod middleware;
 
 pub struct WebApi {}
 
@@ -31,17 +36,20 @@ impl WebApi {
         let (shutdown_result_sender, shutdown_result_receiver) =
             oneshot::channel::<Result<(), WebApiError>>();
 
-        let app = Router::new()
+        let mut router = Router::new()
             .route("/rotate_keypairs", post(handle_rotate_keypairs))
             .route("/get_public_key", get(handle_get_public_key))
             .route("/signup", post(handle_signup))
             .route("/signin", post(handle_signin))
             .route("/refresh", post(handle_refresh))
             .with_state(use_cases);
+
+        router = apply_middleware(router, config)?;
+
         let listener = TcpListener::bind(config.server_addr())
             .await
             .map_err(WebApiError::InvalidListenerAddr)?;
-        axum::serve(listener, app)
+        axum::serve(listener, router)
             .with_graceful_shutdown(async {
                 shutdown_result_sender
                     .send(

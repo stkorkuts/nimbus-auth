@@ -1,6 +1,8 @@
 use thiserror::Error;
 use tokio::{io, sync::oneshot::error::RecvError};
 
+use crate::axum_api::middleware::errors::MiddlewareError;
+
 #[derive(Debug, Error)]
 pub enum WebApiError {
     #[error("invalid listener addr")]
@@ -9,4 +11,6 @@ pub enum WebApiError {
     ServeFailed(#[source] io::Error),
     #[error("can not get shutdown signal")]
     ShutdownSignal(#[from] RecvError),
+    #[error(transparent)]
+    Middleware(#[from] MiddlewareError),
 }
