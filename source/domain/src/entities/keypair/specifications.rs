@@ -10,8 +10,8 @@ pub struct NewKeyPairSpecification {
     pub value: KeyPairValue,
 }
 
-pub struct RestoreKeyPairSpecification {
-    pub id: Identifier<Ulid, SomeKeyPair>,
+pub struct RestoreKeyPairSpecification<'a> {
+    pub id: Identifier<Ulid, SomeKeyPair<'a>>,
     pub value: KeyPairValue,
     pub expires_at: Option<OffsetDateTime>,
     pub revoked_at: Option<OffsetDateTime>,

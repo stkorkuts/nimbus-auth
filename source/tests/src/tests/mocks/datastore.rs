@@ -10,14 +10,14 @@ use ulid::Ulid;
 pub struct MockDatastore {
     users: Arc<DashMap<Identifier<Ulid, User>, User>>,
     sessions: Arc<DashMap<Identifier<Ulid, SomeSession<'static>>, SomeSession<'static>>>,
-    keypairs: Arc<DashMap<Identifier<Ulid, SomeKeyPair>, SomeKeyPair>>,
+    keypairs: Arc<DashMap<Identifier<Ulid, SomeKeyPair<'static>>, SomeKeyPair<'static>>>,
 }
 
 impl MockDatastore {
     pub fn new(
         users: Option<Vec<User>>,
         sessions: Option<Vec<SomeSession<'static>>>,
-        keypairs: Option<Vec<SomeKeyPair>>,
+        keypairs: Option<Vec<SomeKeyPair<'static>>>,
     ) -> Self {
         Self {
             users: Arc::new(
@@ -54,7 +54,9 @@ impl MockDatastore {
         self.sessions.clone()
     }
 
-    pub fn keypairs(&self) -> Arc<DashMap<Identifier<Ulid, SomeKeyPair>, SomeKeyPair>> {
+    pub fn keypairs(
+        &self,
+    ) -> Arc<DashMap<Identifier<Ulid, SomeKeyPair<'static>>, SomeKeyPair<'static>>> {
         self.keypairs.clone()
     }
 }

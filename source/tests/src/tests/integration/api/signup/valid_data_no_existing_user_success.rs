@@ -1,13 +1,7 @@
 use std::{error::Error, path::PathBuf, str::FromStr};
 
-use nimbus_auth_domain::{
-    entities::{
-        Entity,
-        keypair::{
-            SomeKeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
-        },
-    },
-    value_objects::identifier::{Identifier, IdentifierOfType},
+use nimbus_auth_domain::entities::keypair::{
+    SomeKeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
 };
 use nimbus_auth_proto::proto::nimbus::auth::signup::v1::{
     SignUpRequestProto, SignUpResponseProto, sign_up_response_proto,
@@ -47,10 +41,7 @@ async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
     let test_state = ApiTestState {
         users: None,
         sessions: None,
-        keypairs: Some(vec![SomeKeyPair::Active {
-            id: active_keypair.id().clone().as_other_entity(),
-            keypair: active_keypair,
-        }]),
+        keypairs: Some(vec![SomeKeyPair::from(active_keypair)]),
     };
 
     run_api_test(test_action, app_config, test_state)

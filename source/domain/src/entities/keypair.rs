@@ -1,3 +1,5 @@
+use std::{borrow::Cow, ops::Deref};
+
 use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
 use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
@@ -40,6 +42,11 @@ pub struct Revoked {
     revoked_at: OffsetDateTime,
 }
 
+impl KeyPairState for Active {}
+impl KeyPairState for Expiring {}
+impl KeyPairState for Expired {}
+impl KeyPairState for Revoked {}
+
 #[derive(Debug, Clone)]
 pub struct KeyPair<State: KeyPairState> {
     id: Identifier<Ulid, KeyPair<State>>,
@@ -47,54 +54,11 @@ pub struct KeyPair<State: KeyPairState> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SomeKeyPair {
-    Active {
-        id: Identifier<Ulid, SomeKeyPair>,
-        keypair: KeyPair<Active>,
-    },
-    Expiring {
-        id: Identifier<Ulid, SomeKeyPair>,
-        keypair: KeyPair<Expiring>,
-    },
-    Expired {
-        id: Identifier<Ulid, SomeKeyPair>,
-        keypair: KeyPair<Expired>,
-    },
-    Revoked {
-        id: Identifier<Ulid, SomeKeyPair>,
-        keypair: KeyPair<Revoked>,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum SomeKeyPairRef<'a> {
-    Active(&'a KeyPair<Active>),
-    Expiring(&'a KeyPair<Expiring>),
-    Expired(&'a KeyPair<Expired>),
-    Revoked(&'a KeyPair<Revoked>),
-}
-
-impl<'a> SomeKeyPairRef<'a> {
-    pub fn deref_clone(&self) -> SomeKeyPair {
-        match self.clone() {
-            SomeKeyPairRef::Active(keypair_ref) => SomeKeyPair::Active {
-                id: Identifier::from(*keypair_ref.id().value()),
-                keypair: keypair_ref.clone(),
-            },
-            SomeKeyPairRef::Expiring(keypair_ref) => SomeKeyPair::Expiring {
-                id: Identifier::from(*keypair_ref.id().value()),
-                keypair: keypair_ref.clone(),
-            },
-            SomeKeyPairRef::Revoked(keypair_ref) => SomeKeyPair::Revoked {
-                id: Identifier::from(*keypair_ref.id().value()),
-                keypair: keypair_ref.clone(),
-            },
-            SomeKeyPairRef::Expired(keypair_ref) => SomeKeyPair::Expired {
-                id: Identifier::from(*keypair_ref.id().value()),
-                keypair: keypair_ref.clone(),
-            },
-        }
-    }
+pub enum SomeKeyPair<'a> {
+    Active(Cow<'a, KeyPair<Active>>),
+    Expiring(Cow<'a, KeyPair<Expiring>>),
+    Expired(Cow<'a, KeyPair<Expired>>),
+    Revoked(Cow<'a, KeyPair<Revoked>>),
 }
 
 impl<State: KeyPairState> Entity<Ulid> for KeyPair<State> {
@@ -105,25 +69,20 @@ impl<State: KeyPairState> Entity<Ulid> for KeyPair<State> {
     }
 }
 
-impl Entity<Ulid> for SomeKeyPair {
-    type Id = Identifier<Ulid, SomeKeyPair>;
+impl<'a> Entity<Ulid> for SomeKeyPair<'a> {
+    type Id = Identifier<Ulid, SomeKeyPair<'a>>;
 
     fn id(&self) -> &Self::Id {
         match self {
-            SomeKeyPair::Active { id, .. } => id,
-            SomeKeyPair::Expiring { id, .. } => id,
-            SomeKeyPair::Revoked { id, .. } => id,
-            SomeKeyPair::Expired { id, .. } => id,
+            SomeKeyPair::Active(keypair) => keypair.id.as_other_entity_ref(),
+            SomeKeyPair::Expiring(keypair) => keypair.id.as_other_entity_ref(),
+            SomeKeyPair::Revoked(keypair) => keypair.id.as_other_entity_ref(),
+            SomeKeyPair::Expired(keypair) => keypair.id.as_other_entity_ref(),
         }
     }
 }
 
-impl KeyPairState for Active {}
-impl KeyPairState for Expiring {}
-impl KeyPairState for Expired {}
-impl KeyPairState for Revoked {}
-
-impl SomeKeyPair {
+impl SomeKeyPair<'_> {
     pub fn new(NewKeyPairSpecification { value }: NewKeyPairSpecification) -> KeyPair<Active> {
         KeyPair {
             id: Identifier::new(),
@@ -139,7 +98,7 @@ impl SomeKeyPair {
             revoked_at,
             current_time,
         }: RestoreKeyPairSpecification,
-    ) -> SomeKeyPair {
+    ) -> SomeKeyPair<'static> {
         match revoked_at {
             Some(revoked_at) => SomeKeyPair::from(KeyPair {
                 id: Identifier::from(*id.value()),
@@ -147,16 +106,16 @@ impl SomeKeyPair {
             }),
             None => match expires_at {
                 None => SomeKeyPair::from(KeyPair {
-                    id: Identifier::from(*id.value()),
+                    id: id.as_other_entity(),
                     state: Active { value },
                 }),
                 Some(expires_at) => match (expires_at - current_time).whole_seconds() > 0 {
                     true => SomeKeyPair::from(KeyPair {
-                        id: Identifier::from(*id.value()),
+                        id: id.as_other_entity(),
                         state: Expiring { expires_at, value },
                     }),
                     false => SomeKeyPair::from(KeyPair {
-                        id: Identifier::from(*id.value()),
+                        id: id.as_other_entity(),
                         state: Expired {
                             expired_at: expires_at,
                         },
@@ -164,6 +123,22 @@ impl SomeKeyPair {
                 },
             },
         }
+    }
+
+    pub fn into_owned(self) -> SomeKeyPair<'static> {
+        match self {
+            SomeKeyPair::Active(cow) => SomeKeyPair::Active(Cow::Owned(cow.into_owned())),
+            SomeKeyPair::Expiring(cow) => SomeKeyPair::Expiring(Cow::Owned(cow.into_owned())),
+            SomeKeyPair::Revoked(cow) => SomeKeyPair::Revoked(Cow::Owned(cow.into_owned())),
+            SomeKeyPair::Expired(cow) => SomeKeyPair::Expired(Cow::Owned(cow.into_owned())),
+        }
+    }
+}
+
+impl<State: KeyPairState> Deref for KeyPair<State> {
+    type Target = State;
+    fn deref(&self) -> &Self::Target {
+        &self.state
     }
 }
 
@@ -221,62 +196,23 @@ impl KeyPair<Expired> {
     }
 }
 
-impl From<KeyPair<Active>> for SomeKeyPair {
-    fn from(keypair: KeyPair<Active>) -> Self {
-        SomeKeyPair::Active {
-            id: Identifier::from(*keypair.id().value()),
-            keypair,
+macro_rules! impl_keypair_froms {
+    ($state:ty, $variant:ident) => {
+        impl From<KeyPair<$state>> for SomeKeyPair<'static> {
+            fn from(session: KeyPair<$state>) -> Self {
+                SomeKeyPair::$variant(Cow::Owned(session))
+            }
         }
-    }
-}
 
-impl From<KeyPair<Expiring>> for SomeKeyPair {
-    fn from(keypair: KeyPair<Expiring>) -> Self {
-        SomeKeyPair::Expiring {
-            id: Identifier::from(*keypair.id().value()),
-            keypair,
+        impl<'a> From<&'a KeyPair<$state>> for SomeKeyPair<'a> {
+            fn from(session: &'a KeyPair<$state>) -> Self {
+                SomeKeyPair::$variant(Cow::Borrowed(session))
+            }
         }
-    }
+    };
 }
 
-impl From<KeyPair<Expired>> for SomeKeyPair {
-    fn from(keypair: KeyPair<Expired>) -> Self {
-        SomeKeyPair::Expired {
-            id: Identifier::from(*keypair.id().value()),
-            keypair,
-        }
-    }
-}
-
-impl From<KeyPair<Revoked>> for SomeKeyPair {
-    fn from(keypair: KeyPair<Revoked>) -> Self {
-        SomeKeyPair::Revoked {
-            id: Identifier::from(*keypair.id().value()),
-            keypair,
-        }
-    }
-}
-
-impl<'a> From<&'a KeyPair<Active>> for SomeKeyPairRef<'a> {
-    fn from(keypair: &'a KeyPair<Active>) -> Self {
-        SomeKeyPairRef::Active(keypair)
-    }
-}
-
-impl<'a> From<&'a KeyPair<Expiring>> for SomeKeyPairRef<'a> {
-    fn from(keypair: &'a KeyPair<Expiring>) -> Self {
-        SomeKeyPairRef::Expiring(keypair)
-    }
-}
-
-impl<'a> From<&'a KeyPair<Expired>> for SomeKeyPairRef<'a> {
-    fn from(keypair: &'a KeyPair<Expired>) -> Self {
-        SomeKeyPairRef::Expired(keypair)
-    }
-}
-
-impl<'a> From<&'a KeyPair<Revoked>> for SomeKeyPairRef<'a> {
-    fn from(keypair: &'a KeyPair<Revoked>) -> Self {
-        SomeKeyPairRef::Revoked(keypair)
-    }
-}
+impl_keypair_froms!(Active, Active);
+impl_keypair_froms!(Expiring, Expiring);
+impl_keypair_froms!(Expired, Expired);
+impl_keypair_froms!(Revoked, Revoked);

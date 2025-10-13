@@ -24,7 +24,7 @@ mod signup;
 struct ApiTestState<'a> {
     pub users: Option<Vec<User>>,
     pub sessions: Option<Vec<SomeSession<'a>>>,
-    pub keypairs: Option<Vec<SomeKeyPair>>,
+    pub keypairs: Option<Vec<SomeKeyPair<'a>>>,
 }
 
 async fn run_api_test<Fut: Future<Output = Result<(), ErrorBoxed>>, TAction: FnOnce() -> Fut>(

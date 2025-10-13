@@ -37,6 +37,10 @@ pub struct Revoked {
     revoked_at: OffsetDateTime,
 }
 
+impl SessionState for Active {}
+impl SessionState for Expired {}
+impl SessionState for Revoked {}
+
 #[derive(Debug, Clone)]
 pub struct Session<State: SessionState> {
     id: Identifier<Ulid, Session<State>>,
@@ -69,10 +73,6 @@ impl<'a> Entity<Ulid> for SomeSession<'a> {
         }
     }
 }
-
-impl SessionState for Active {}
-impl SessionState for Expired {}
-impl SessionState for Revoked {}
 
 impl SomeSession<'_> {
     pub fn new(
@@ -123,11 +123,11 @@ impl SomeSession<'_> {
         }
     }
 
-    pub fn into_owned(&self) -> SomeSession<'static> {
+    pub fn into_owned(self) -> SomeSession<'static> {
         match self {
-            SomeSession::Active(cow) => SomeSession::Active(Cow::Owned(cow.clone().into_owned())),
-            SomeSession::Revoked(cow) => SomeSession::Revoked(Cow::Owned(cow.clone().into_owned())),
-            SomeSession::Expired(cow) => SomeSession::Expired(Cow::Owned(cow.clone().into_owned())),
+            SomeSession::Active(cow) => SomeSession::Active(Cow::Owned(cow.into_owned())),
+            SomeSession::Revoked(cow) => SomeSession::Revoked(Cow::Owned(cow.into_owned())),
+            SomeSession::Expired(cow) => SomeSession::Expired(Cow::Owned(cow.into_owned())),
         }
     }
 }
@@ -199,7 +199,7 @@ impl Session<Expired> {
     }
 }
 
-macro_rules! impl_from_session_for_somesession {
+macro_rules! impl_session_froms {
     ($state:ty, $variant:ident) => {
         impl From<Session<$state>> for SomeSession<'static> {
             fn from(session: Session<$state>) -> Self {
@@ -215,6 +215,6 @@ macro_rules! impl_from_session_for_somesession {
     };
 }
 
-impl_from_session_for_somesession!(Active, Active);
-impl_from_session_for_somesession!(Expired, Expired);
-impl_from_session_for_somesession!(Revoked, Revoked);
+impl_session_froms!(Active, Active);
+impl_session_froms!(Expired, Expired);
+impl_session_froms!(Revoked, Revoked);
