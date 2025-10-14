@@ -5,5 +5,6 @@ pub async fn handle_rotate_keypairs(
     State(use_cases): State<UseCases>,
     headers: HeaderMap,
     body: Bytes,
-) -> impl IntoResponse {
+) {
+    todo!();
 }

@@ -8,6 +8,7 @@ use nimbus_auth_shared::config::AppConfig;
 use tower_http::{
     cors::{Any, CorsLayer},
     set_header::SetResponseHeaderLayer,
+    trace::TraceLayer,
 };
 
 use crate::axum_api::middleware::errors::MiddlewareError;
@@ -18,8 +19,11 @@ const HSTS_HEADER_NAME: &str = "strict-transport-security";
 const HSTS_HEADER_VALUE: &str = "max-age=31536000; includeSubDomains; preload";
 
 pub fn apply_middleware(mut router: Router, config: &AppConfig) -> Result<Router, MiddlewareError> {
-    let mut cors_layer = CorsLayer::new().allow_methods([Method::GET, Method::POST]);
+    // tracing
+    router = router.layer(TraceLayer::new_for_http());
 
+    // cors
+    let mut cors_layer = CorsLayer::new().allow_methods([Method::GET, Method::POST]);
     match config.cors_origins() {
         Some(origins) => {
             for origin in origins {
@@ -35,6 +39,7 @@ pub fn apply_middleware(mut router: Router, config: &AppConfig) -> Result<Router
     }
     router = router.layer(cors_layer);
 
+    // hsts
     if config.use_hsts() {
         let hsts_layer = SetResponseHeaderLayer::if_not_present(
             HeaderName::from_static(HSTS_HEADER_NAME),
