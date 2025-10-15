@@ -1,9 +1,6 @@
-use std::{env, error::Error, sync::Arc};
+use std::{env, sync::Arc};
 
-use nimbus_auth_application::{
-    services::user_repository,
-    use_cases::{UseCases, UseCasesConfig, UseCasesServices},
-};
+use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
 use nimbus_auth_infrastructure::{
     axum_api::WebApi,
     postgres_db::PostgresDatabase,
@@ -22,25 +19,47 @@ use nimbus_auth_shared::{
         POSTGRESQL_URL_ENV_VAR_NAME, SERVER_ADDR_ENV_VAR_NAME,
         SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME, USE_HSTS_ENV_VAR_NAME,
     },
-    errors::ErrorBoxed,
+    errors::{ErrorBoxed, ErrorContextExt},
 };
+use tokio::io;
+#[cfg(unix)]
+use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::oneshot;
 use tracing::subscriber;
 use tracing_subscriber::FmtSubscriber;
 
+use crate::errors::EntryPointError;
+
+mod errors;
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let config = get_config_from_env().map_err(|boxed| boxed.inner())?;
+async fn main() -> Result<(), EntryPointError> {
+    let config = get_config_from_env()?;
 
-    configure_tracing(&config).map_err(|boxed| boxed.inner())?;
+    configure_tracing(&config)?;
 
-    let use_cases = build_use_cases(&config)
-        .await
-        .map_err(|boxed| boxed.inner())?;
+    let use_cases = build_use_cases(&config).await?;
 
-    let (_, shutdown_signal_receiver) = oneshot::channel();
+    let (shutdown_signal_sender, shutdown_signal_receiver) = oneshot::channel();
+    let ctrl_c = tokio::signal::ctrl_c();
+    #[cfg(unix)]
+    let sigterm = async {
+        let mut stream = signal(SignalKind::terminate())?;
+        stream.recv().await;
+        Ok::<(), io::Error>(())
+    };
+    #[cfg(not(unix))]
+    let sigterm = std::future::pending::<()>();
 
-    WebApi::serve(&config, use_cases, shutdown_signal_receiver).await?;
+    tokio::select! {
+        res = WebApi::serve(&config, use_cases, shutdown_signal_receiver) => res?,
+        res = ctrl_c => res?,
+        res = sigterm => res?
+    }
+
+    if let Err(_) = shutdown_signal_sender.send(()) {
+        return Err(EntryPointError::ShutdownSignalSending);
+    }
 
     Ok(())
 }
@@ -49,28 +68,60 @@ fn get_config_from_env() -> Result<AppConfig, ErrorBoxed> {
     dotenvy::dotenv()?;
 
     let mut config_builder = AppConfigBuilder::new(AppConfigRequiredOptions {
-        server_addr: env::var(SERVER_ADDR_ENV_VAR_NAME)?,
-        keypairs_store_path: env::var(KEYPAIRS_STORE_PATH_ENV_VAR_NAME)?.parse()?,
-        postgres_db_url: env::var(POSTGRESQL_URL_ENV_VAR_NAME)?.parse()?,
+        server_addr: env::var(SERVER_ADDR_ENV_VAR_NAME).map_err(|err| {
+            err.with_context(format!(
+                "env variable ({SERVER_ADDR_ENV_VAR_NAME}) is required and not presented"
+            ))
+        })?,
+        keypairs_store_path: env::var(KEYPAIRS_STORE_PATH_ENV_VAR_NAME)
+            .map_err(|err| {
+                err.with_context(format!(
+                    "env variable ({KEYPAIRS_STORE_PATH_ENV_VAR_NAME}) is required and not presented"
+                ))
+            })?
+            .parse()?,
+        postgres_db_url: env::var(POSTGRESQL_URL_ENV_VAR_NAME)
+            .map_err(|err| {
+                err.with_context(format!(
+                    "env variable ({POSTGRESQL_URL_ENV_VAR_NAME}) is required and not presented"
+                ))
+            })?
+            .parse()?,
     });
 
     if let Ok(value) = env::var(SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME) {
-        let parsed = value.parse()?;
+        let parsed = value.parse().map_err(|err: std::num::ParseIntError| {
+            err.with_context(format!(
+                "env variable ({SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME}) has wrong format, it should be integer"
+            ))
+        })?;
         config_builder.with_session_expiration_seconds(parsed);
     };
 
     if let Ok(value) = env::var(ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME) {
-        let parsed = value.parse()?;
+        let parsed = value.parse().map_err(|err: std::num::ParseIntError| {
+            err.with_context(format!(
+                "env variable ({ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME}) has wrong format, it should be integer"
+            ))
+        })?;
         config_builder.with_access_token_expiration_seconds(parsed);
     }
 
     if let Ok(value) = env::var(POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME) {
-        let parsed = value.parse()?;
+        let parsed = value.parse().map_err(|err: std::num::ParseIntError| {
+            err.with_context(format!(
+                "env variable ({POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME}) has wrong format, it should be integer"
+            ))
+        })?;
         config_builder.with_postgres_db_max_connections(parsed);
     }
 
     if let Ok(value) = env::var(USE_HSTS_ENV_VAR_NAME)
-        && value.parse::<bool>()?
+        && value.parse::<bool>().map_err(|err| {
+            err.with_context(format!(
+                "env variable ({USE_HSTS_ENV_VAR_NAME}) has wrong format, it should be `true` or `false`"
+            ))
+        })?
     {
         config_builder.with_hsts();
     }

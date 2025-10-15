@@ -1,16 +1,10 @@
 use axum::{
     Router,
-    http::{HeaderName, HeaderValue, Method},
-    routing::{Route, get, post},
+    routing::{get, post},
 };
 use nimbus_auth_application::use_cases::UseCases;
-use nimbus_auth_shared::{config::AppConfig, errors::ErrorBoxed};
+use nimbus_auth_shared::config::AppConfig;
 use tokio::{net::TcpListener, sync::oneshot};
-use tower::ServiceBuilder;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    set_header::SetResponseHeaderLayer,
-};
 
 use crate::axum_api::{
     errors::WebApiError,
@@ -49,6 +43,7 @@ impl WebApi {
         let listener = TcpListener::bind(config.server_addr())
             .await
             .map_err(WebApiError::InvalidListenerAddr)?;
+
         axum::serve(listener, router)
             .with_graceful_shutdown(async {
                 shutdown_result_sender
