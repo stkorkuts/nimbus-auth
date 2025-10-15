@@ -19,18 +19,11 @@ thiserror.workspace = true
 tokio.workspace = true
 zeroize.workspace = true
 argon2.workspace = true
+rand.workspace = true
+ed25519-dalek.workspace = true
 
-# Api
+# Crate specific dependencies
 axum = {version = "0.8.4", default-features = false, features = ["http1", "http2", "tokio", "tracing"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.6", features = ["cors", "trace", "set-header"] }
-
-# Protobuf
-prost = "0.12"
-
-# Crypto
-ed25519-dalek = { version = "2.2.0", features = ["rand_core", "pkcs8", "pem"] }
-rand = "0.8"
-
-# Database
 sqlx = { version = "0.8", features = [ "postgres", "sqlite", "runtime-tokio", "tls-native-tls", "time" ] }

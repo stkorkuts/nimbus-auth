@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# Protobuf
-prost = "0.12"
+# Workspace dependencies
+prost.workspace = true
 
 [build-dependencies]
 prost-build = "0.12"

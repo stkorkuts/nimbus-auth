@@ -15,10 +15,8 @@ ulid.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true
 argon2.workspace = true
+ed25519-dalek.workspace = true
 
-# Crypto
-ed25519-dalek = { version = "2.2.0", features = ["pkcs8", "pem"] }
-
-# JWT
+# Crate specific dependencies
 jsonwebtoken = "9.3.1"
 serde = { version = "1.0", features = ["derive"] }

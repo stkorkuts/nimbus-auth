@@ -15,6 +15,10 @@ time = "0.3.42"
 ulid = "1.2.1"
 thiserror = "2.0.16"
 url = "2.5.7"
+rand = "0.8"
+
+# Utilities
+dashmap = { version = "6.1.0" }
 
 # Tracing
 tracing = "0.1.41"
@@ -28,3 +32,10 @@ zeroize = { version = "1.8.1", features = ["derive"] }
 
 # Crypto
 argon2 = { version = "0.5.3", features = ["zeroize"] }
+ed25519-dalek = { version = "2.2.0", features = ["rand_core", "pkcs8", "pem"] }
+
+# Protobuf
+prost = "0.12"
+
+# Http
+reqwest = { version = "0.12" }

@@ -18,5 +18,5 @@ ulid.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 
-# Configuration
+# Crate specific dependencies
 dotenvy = { version = "0.15.7" }
