@@ -6,7 +6,7 @@ use nimbus_auth_application::services::keypair_repository::{
 use nimbus_auth_domain::{
     entities::{
         Entity,
-        keypair::{self, Active, KeyPair, SomeKeyPair},
+        keypair::{Active, KeyPair, SomeKeyPair},
     },
     value_objects::identifier::Identifier,
 };
@@ -14,7 +14,7 @@ use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use tokio::sync::Mutex;
 use ulid::Ulid;
 
-use crate::tests::mocks::datastore::MockDatastore;
+use crate::mocks::datastore::MockDatastore;
 
 pub struct MockKeyPairRepository {
     datastore: Arc<MockDatastore>,

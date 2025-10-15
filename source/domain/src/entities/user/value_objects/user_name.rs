@@ -5,6 +5,8 @@ use nimbus_auth_shared::constants::{USERNAME_MAX_LENGTH_INCLUSIVE, USERNAME_MIN_
 use crate::entities::user::value_objects::user_name::errors::UserNameError;
 
 pub mod errors;
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UserName {

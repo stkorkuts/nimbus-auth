@@ -1,7 +1,6 @@
-use nimbus_auth_domain::entities::user::value_objects::user_name::{
-    UserName, errors::UserNameError,
-};
 use nimbus_auth_shared::constants::{USERNAME_MAX_LENGTH_INCLUSIVE, USERNAME_MIN_LENGTH_INCLUSIVE};
+
+use crate::entities::user::value_objects::user_name::{UserName, errors::UserNameError};
 
 #[test]
 fn valid_user_name() {

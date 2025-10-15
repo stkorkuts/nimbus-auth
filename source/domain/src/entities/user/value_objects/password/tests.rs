@@ -1,8 +1,7 @@
-use nimbus_auth_domain::entities::user::value_objects::password::{
-    Password, errors::PasswordError,
-};
 use nimbus_auth_shared::constants::{PASSWORD_MAX_LENGTH_INCLUSIVE, PASSWORD_MIN_LENGTH_INCLUSIVE};
 use zeroize::Zeroizing;
+
+use crate::entities::user::value_objects::password::{Password, errors::PasswordError};
 
 #[test]
 fn valid_password() {

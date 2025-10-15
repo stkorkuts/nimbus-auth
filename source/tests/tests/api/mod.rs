@@ -9,16 +9,16 @@ use nimbus_auth_infrastructure::{
     },
 };
 use nimbus_auth_shared::{config::AppConfig, errors::ErrorBoxed};
-use tokio::{spawn, sync::oneshot};
-
-use crate::tests::mocks::{
+use nimbus_auth_tests::mocks::{
     datastore::MockDatastore,
     services::{
         keypair_repository::MockKeyPairRepository, session_repository::MockSessionRepository,
         user_repository::MockUserRepository,
     },
 };
+use tokio::{spawn, sync::oneshot};
 
+mod signin;
 mod signup;
 
 struct ApiTestState<'a> {

@@ -1,9 +1,10 @@
 use argon2::password_hash::{SaltString, rand_core::OsRng};
-use nimbus_auth_domain::entities::user::value_objects::{
+use zeroize::Zeroizing;
+
+use crate::entities::user::value_objects::{
     password::Password,
     password_hash::{PasswordHash, errors::PasswordHashError},
 };
-use zeroize::Zeroizing;
 
 const VALID_PASSWORD: &str = "StrongPassword123!";
 

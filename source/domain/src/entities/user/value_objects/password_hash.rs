@@ -10,6 +10,8 @@ use crate::entities::user::value_objects::{
 };
 
 pub mod errors;
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone, Debug)]
 pub struct PasswordHash {

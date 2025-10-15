@@ -4,6 +4,8 @@ use zeroize::Zeroizing;
 use crate::entities::user::value_objects::password::errors::PasswordError;
 
 pub mod errors;
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone)]
 pub struct Password {

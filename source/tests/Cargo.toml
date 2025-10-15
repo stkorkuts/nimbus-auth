@@ -3,7 +3,7 @@ name = "nimbus_auth_tests"
 version = "0.1.0"
 edition = "2024"
 
-[dev-dependencies]
+[dependencies]
 nimbus_auth_domain = { path = "../domain" }
 nimbus_auth_application = { path = "../application" }
 nimbus_auth_infrastructure = { path = "../infrastructure" }

@@ -11,7 +11,7 @@ use nimbus_auth_shared::futures::{StaticPinnedFuture, pin_static_future};
 use tokio::sync::Mutex;
 use ulid::Ulid;
 
-use crate::tests::mocks::datastore::MockDatastore;
+use crate::mocks::datastore::MockDatastore;
 
 pub struct MockSessionRepository {
     datastore: Arc<MockDatastore>,

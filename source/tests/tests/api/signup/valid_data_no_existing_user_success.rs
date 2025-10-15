@@ -14,7 +14,7 @@ use prost::Message;
 use reqwest::Client;
 use zeroize::Zeroizing;
 
-use crate::tests::integration::api::{ApiTestState, run_api_test};
+use crate::api::{ApiTestState, run_api_test};
 
 const SERVER_ADDR: &str = "localhost:5001";
 const KEYPAIRS_STORE_PATH: &str = "/temp";
