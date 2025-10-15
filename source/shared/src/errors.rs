@@ -1,5 +1,8 @@
 use std::{error::Error, fmt::Display, ops::Deref};
 
+use thiserror::Error;
+use url::ParseError;
+
 #[derive(Debug)]
 pub struct ErrorBoxed(Box<dyn Error + Send + Sync + 'static>);
 
@@ -42,3 +45,9 @@ impl Display for StringError {
     }
 }
 impl Error for StringError {}
+
+#[derive(Error, Debug)]
+pub enum AppConfigBuilderError {
+    #[error(transparent)]
+    OriginParsingError(#[from] ParseError),
+}

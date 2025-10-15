@@ -32,7 +32,7 @@ async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
         keypairs_store_path: PathBuf::from_str(KEYPAIRS_STORE_PATH)?,
         postgres_db_url: POSTGRES_DB_URL.to_string(),
     })
-    .build();
+    .build()?;
 
     let active_keypair = SomeKeyPair::new(NewKeyPairSpecification {
         value: KeyPairValue::from_pem(Zeroizing::new(PRIVATE_KEY_PEM.to_string()))?,

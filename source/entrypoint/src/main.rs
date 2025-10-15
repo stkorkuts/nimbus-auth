@@ -17,9 +17,10 @@ use nimbus_auth_infrastructure::{
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},
     constants::{
-        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, KEYPAIRS_STORE_PATH_ENV_VAR_NAME,
-        POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME, POSTGRESQL_URL_ENV_VAR_NAME,
-        SERVER_ADDR_ENV_VAR_NAME, SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME,
+        ACCESS_TOKEN_EXPIRATION_SECONDS_ENV_VAR_NAME, CORS_ORIGINS_COMMA_SEPARATED_ENV_VAR_NAME,
+        KEYPAIRS_STORE_PATH_ENV_VAR_NAME, POSTGRESDB_MAX_CONNECTIONS_ENV_VAR_NAME,
+        POSTGRESQL_URL_ENV_VAR_NAME, SERVER_ADDR_ENV_VAR_NAME,
+        SESSION_EXPIRATION_SECONDS_ENV_VAR_NAME, USE_HSTS_ENV_VAR_NAME,
     },
     errors::ErrorBoxed,
 };
@@ -68,7 +69,17 @@ fn get_config_from_env() -> Result<AppConfig, ErrorBoxed> {
         config_builder.with_postgres_db_max_connections(parsed);
     }
 
-    Ok(config_builder.build())
+    if let Ok(value) = env::var(USE_HSTS_ENV_VAR_NAME)
+        && value.parse::<bool>()?
+    {
+        config_builder.with_hsts();
+    }
+
+    if let Ok(value) = env::var(CORS_ORIGINS_COMMA_SEPARATED_ENV_VAR_NAME) {
+        config_builder.with_cors_origins_comma_separated(&value);
+    }
+
+    Ok(config_builder.build()?)
 }
 
 fn configure_tracing(_: &AppConfig) -> Result<(), ErrorBoxed> {

@@ -24,16 +24,16 @@ pub fn apply_middleware(mut router: Router, config: &AppConfig) -> Result<Router
 
     // cors
     let mut cors_layer = CorsLayer::new().allow_methods([Method::GET, Method::POST]);
-    match config.cors_origins() {
-        Some(origins) => {
-            for origin in origins {
+    match config.cors_origins().len() > 0 {
+        true => {
+            for origin in config.cors_origins() {
                 cors_layer = cors_layer.allow_origin(
                     HeaderValue::from_str(origin)
                         .map_err(|err| MiddlewareError::InvalidOrigin(err))?,
                 )
             }
         }
-        None => {
+        false => {
             cors_layer = cors_layer.allow_origin(Any);
         }
     }

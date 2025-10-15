@@ -8,3 +8,4 @@ edition = "2024"
 time.workspace = true
 ulid.workspace = true
 thiserror.workspace = true
+url.workspace = true
