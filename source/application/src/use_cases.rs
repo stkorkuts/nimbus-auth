@@ -9,9 +9,10 @@ use crate::{
         user_repository::UserRepository,
     },
     use_cases::{
-        get_public_key::handle_get_public_key,
-        refresh::handle_refresh,
-        rotate_keypairs::handle_rotate_keypairs,
+        authorize::{errors::AuthorizationError, handle_authorize},
+        get_public_key::{errors::GetPublicKeyError, handle_get_public_key},
+        refresh::{errors::RefreshError, handle_refresh},
+        rotate_keypairs::{errors::RotateKeyPairsError, handle_rotate_keypairs},
         signin::{errors::SignInError, handle_signin},
         signup::{errors::SignUpError, handle_signup},
     },
@@ -20,6 +21,9 @@ use crate::{
 mod dtos;
 pub use dtos::user::*;
 
+mod authorize;
+pub use authorize::schema::*;
+
 mod signup;
 pub use signup::schema::*;
 
@@ -27,15 +31,12 @@ mod signin;
 pub use signin::schema::*;
 
 mod refresh;
-pub use refresh::errors::*;
 pub use refresh::schema::*;
 
 mod get_public_key;
-pub use get_public_key::errors::*;
 pub use get_public_key::schema::*;
 
 mod rotate_keypairs;
-pub use rotate_keypairs::errors::*;
 pub use rotate_keypairs::schema::*;
 
 #[derive(Clone)]
@@ -59,9 +60,18 @@ pub struct UseCasesServices {
     pub random_service: Arc<dyn RandomService>,
 }
 
-impl<'a> UseCases {
+impl UseCases {
     pub fn new(config: UseCasesConfig, services: UseCasesServices) -> UseCases {
         Self { config, services }
+    }
+
+    /// Authenticate works only with provided token and private key with what it was signed
+    /// It does not fetch user from any persistance layer
+    pub async fn authorize<'a>(
+        &self,
+        request: AuthorizationRequest<'a>,
+    ) -> Result<AuthorizationResponse, AuthorizationError> {
+        handle_authorize(request).await
     }
 
     pub async fn rotate_keypairs(
@@ -78,7 +88,10 @@ impl<'a> UseCases {
         .await
     }
 
-    pub async fn signup(&self, request: SignUpRequest<'a>) -> Result<SignUpResponse, SignUpError> {
+    pub async fn signup<'a>(
+        &self,
+        request: SignUpRequest<'a>,
+    ) -> Result<SignUpResponse, SignUpError> {
         handle_signup(
             request,
             self.services.user_repository.clone(),
@@ -92,7 +105,10 @@ impl<'a> UseCases {
         .await
     }
 
-    pub async fn signin(&self, request: SignInRequest<'a>) -> Result<SignInResponse, SignInError> {
+    pub async fn signin<'a>(
+        &self,
+        request: SignInRequest<'a>,
+    ) -> Result<SignInResponse, SignInError> {
         handle_signin(
             request,
             self.services.user_repository.clone(),
@@ -105,7 +121,7 @@ impl<'a> UseCases {
         .await
     }
 
-    pub async fn get_public_key(
+    pub async fn get_public_key<'a>(
         &self,
         request: GetPublicKeyRequest<'a>,
     ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {

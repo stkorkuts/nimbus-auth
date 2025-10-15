@@ -16,6 +16,7 @@ use crate::axum_api::{
 };
 
 pub mod errors;
+mod extractors;
 mod handlers;
 mod middleware;
 

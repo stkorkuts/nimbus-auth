@@ -11,42 +11,19 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use crate::axum_api::middleware::errors::MiddlewareError;
+use crate::axum_api::middleware::{
+    cors::apply_cors_middleware, errors::MiddlewareError, hsts::apply_hsts_middleware,
+};
 
+mod cors;
 pub mod errors;
-
-const HSTS_HEADER_NAME: &str = "strict-transport-security";
-const HSTS_HEADER_VALUE: &str = "max-age=31536000; includeSubDomains; preload";
+mod hsts;
+mod rate_limiting;
 
 pub fn apply_middleware(mut router: Router, config: &AppConfig) -> Result<Router, MiddlewareError> {
-    // tracing
     router = router.layer(TraceLayer::new_for_http());
-
-    // cors
-    let mut cors_layer = CorsLayer::new().allow_methods([Method::GET, Method::POST]);
-    match config.cors_origins().len() > 0 {
-        true => {
-            for origin in config.cors_origins() {
-                cors_layer = cors_layer.allow_origin(
-                    HeaderValue::from_str(origin)
-                        .map_err(|err| MiddlewareError::InvalidOrigin(err))?,
-                )
-            }
-        }
-        false => {
-            cors_layer = cors_layer.allow_origin(Any);
-        }
-    }
-    router = router.layer(cors_layer);
-
-    // hsts
-    if config.use_hsts() {
-        let hsts_layer = SetResponseHeaderLayer::if_not_present(
-            HeaderName::from_static(HSTS_HEADER_NAME),
-            HeaderValue::from_static(HSTS_HEADER_VALUE),
-        );
-        router = router.layer(hsts_layer);
-    }
+    router = apply_hsts_middleware(router);
+    router = apply_cors_middleware(router, config.cors_origins())?;
 
     Ok(router)
 }

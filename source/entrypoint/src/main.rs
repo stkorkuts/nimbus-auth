@@ -5,7 +5,7 @@ use nimbus_auth_infrastructure::{
     axum_api::WebApi,
     postgres_db::PostgresDatabase,
     services_implementations::{
-        filesystem_keypair_repository::FileSystemKeyPairRepository,
+        filesystem_inmemory_cached_keypair_repository::FileSystemInMemoryCachedKeyPairRepository,
         os_random_service::OsRandomService, os_time_service::OsTimeService,
         postgres_session_repository::PostgresSessionRepository,
         postgres_user_repository::PostgresUserRepository,
@@ -151,8 +151,9 @@ async fn build_use_cases(app_config: &AppConfig) -> Result<UseCases, ErrorBoxed>
 
     let session_repository = Arc::new(PostgresSessionRepository::new(postgres_db.clone()));
     let user_repository = Arc::new(PostgresUserRepository::new(postgres_db.clone()));
-    let keypair_repository =
-        Arc::new(FileSystemKeyPairRepository::init(app_config.keypairs_store_path()).await?);
+    let keypair_repository = Arc::new(
+        FileSystemInMemoryCachedKeyPairRepository::init(app_config.keypairs_store_path()).await?,
+    );
     let time_service = Arc::new(OsTimeService::new());
     let random_service = Arc::new(OsRandomService::new());
 

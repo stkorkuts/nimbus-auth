@@ -1,8 +1,9 @@
-use axum::http::header::InvalidHeaderValue;
 use thiserror::Error;
+
+use crate::axum_api::middleware::cors::errors::CorsMiddlewareError;
 
 #[derive(Error, Debug)]
 pub enum MiddlewareError {
-    #[error("invalid origin value: {0}")]
-    InvalidOrigin(#[source] InvalidHeaderValue),
+    #[error(transparent)]
+    Cors(#[from] CorsMiddlewareError),
 }

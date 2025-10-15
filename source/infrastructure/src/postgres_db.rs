@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use nimbus_auth_shared::{
     config::AppConfig, constants::CHANNEL_BUFFER_SIZE_DEFAULT, errors::ErrorBoxed,

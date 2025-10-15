@@ -10,15 +10,15 @@ use nimbus_auth_domain::{
 use nimbus_auth_shared::futures::StaticPinnedFuture;
 use ulid::Ulid;
 
-pub struct FileSystemKeyPairRepository {
+pub struct FileSystemInMemoryCachedKeyPairRepository {
     keypairs_location: PathBuf,
 }
 
-pub struct FileSystemKeyPairRepositoryWithTransaction {
+pub struct FileSystemInMemoryCachedKeyPairRepositoryWithTransaction {
     keypairs_location: PathBuf,
 }
 
-impl FileSystemKeyPairRepository {
+impl FileSystemInMemoryCachedKeyPairRepository {
     pub async fn init(keypairs_location: &PathBuf) -> Result<Self, KeyPairRepositoryError> {
         todo!();
         Ok(Self {
@@ -27,7 +27,7 @@ impl FileSystemKeyPairRepository {
     }
 }
 
-impl KeyPairRepository for FileSystemKeyPairRepository {
+impl KeyPairRepository for FileSystemInMemoryCachedKeyPairRepository {
     fn start_transaction(
         &self,
     ) -> StaticPinnedFuture<Box<dyn KeyPairRepositoryWithTransaction>, KeyPairRepositoryError> {
@@ -50,7 +50,7 @@ impl KeyPairRepository for FileSystemKeyPairRepository {
     }
 }
 
-impl KeyPairRepositoryWithTransaction for FileSystemKeyPairRepositoryWithTransaction {
+impl KeyPairRepositoryWithTransaction for FileSystemInMemoryCachedKeyPairRepositoryWithTransaction {
     fn commit(self: Box<Self>) -> StaticPinnedFuture<(), KeyPairRepositoryError> {
         todo!()
     }

@@ -1,4 +1,4 @@
-use axum::{body::Bytes, extract::State, http::HeaderMap, response::IntoResponse};
+use axum::{body::Bytes, extract::State, http::HeaderMap};
 use nimbus_auth_application::use_cases::UseCases;
 
 pub async fn handle_rotate_keypairs(
