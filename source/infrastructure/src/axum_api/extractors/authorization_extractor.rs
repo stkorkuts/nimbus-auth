@@ -5,7 +5,11 @@ use axum::{
 use nimbus_auth_application::use_cases::{AuthorizationRequest, UseCases, UserDto};
 use tracing::error;
 
-pub struct Authorization(pub UserDto);
+use crate::axum_api::extractors::authorization_extractor::errors::AuthorizationExtractorError;
+
+pub mod errors;
+
+pub struct Authorization(pub Result<UserDto, AuthorizationExtractorError>);
 
 impl FromRequestParts<UseCases> for Authorization {
     type Rejection = (StatusCode, &'static str);
@@ -23,40 +27,25 @@ impl FromRequestParts<UseCases> for Authorization {
                     (StatusCode::INTERNAL_SERVER_ERROR, "")
                 })?;
 
-            let access_token = parts
-                .headers
-                .get("authorization")
-                .ok_or((
-                    StatusCode::UNAUTHORIZED,
-                    "Provide authorization header with value",
-                ))?
-                .to_str()
-                .map_err(|_| {
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        "Wrong authorization header value format",
-                    )
-                })?
-                .strip_prefix("Bearer ")
-                .ok_or({
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        "Wrong authorization header schema",
-                    )
-                })?;
+            let authorization_result = async {
+                let access_token = parts
+                    .headers
+                    .get("authorization")
+                    .ok_or(AuthorizationExtractorError::AuthHeaderIsMissing)?
+                    .to_str()
+                    .map_err(|_| AuthorizationExtractorError::AuthHeaderContainsNonAscii)?
+                    .strip_prefix("Bearer ")
+                    .ok_or(AuthorizationExtractorError::AuthHeaderWrongSchema)?;
 
-            let authorized_user = use_cases
-                .authorize(AuthorizationRequest { access_token })
-                .await
-                .map_err(|err| {
-                    error!("error while trying to authorize a user: {err}");
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        "error while trying to authorize a user",
-                    )
-                })?;
+                let authorized_user = use_cases
+                    .authorize(AuthorizationRequest { access_token })
+                    .await?;
 
-            Ok(Authorization(authorized_user.user))
+                Ok::<UserDto, AuthorizationExtractorError>(authorized_user.user)
+            }
+            .await;
+
+            Ok(Authorization(authorization_result))
         }
     }
 }

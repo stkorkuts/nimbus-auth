@@ -9,12 +9,9 @@ use crate::{
         user_repository::UserRepository,
     },
     use_cases::{
-        authorize::{errors::AuthorizationError, handle_authorize},
-        get_public_key::{errors::GetPublicKeyError, handle_get_public_key},
-        refresh::{errors::RefreshError, handle_refresh},
-        rotate_keypairs::{errors::RotateKeyPairsError, handle_rotate_keypairs},
-        signin::{errors::SignInError, handle_signin},
-        signup::{errors::SignUpError, handle_signup},
+        authorize::handle_authorize, get_public_key::handle_get_public_key,
+        refresh::handle_refresh, rotate_keypairs::handle_rotate_keypairs, signin::handle_signin,
+        signup::handle_signup,
     },
 };
 
@@ -22,21 +19,27 @@ mod dtos;
 pub use dtos::user::*;
 
 mod authorize;
+pub use authorize::errors::*;
 pub use authorize::schema::*;
 
 mod signup;
+pub use signup::errors::*;
 pub use signup::schema::*;
 
 mod signin;
+pub use signin::errors::*;
 pub use signin::schema::*;
 
 mod refresh;
+pub use refresh::errors::*;
 pub use refresh::schema::*;
 
 mod get_public_key;
+pub use get_public_key::errors::*;
 pub use get_public_key::schema::*;
 
 mod rotate_keypairs;
+pub use rotate_keypairs::errors::*;
 pub use rotate_keypairs::schema::*;
 
 #[derive(Clone)]
