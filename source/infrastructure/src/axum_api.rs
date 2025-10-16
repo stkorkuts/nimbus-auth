@@ -19,6 +19,7 @@ pub mod errors;
 mod extractors;
 mod handlers;
 mod middleware;
+mod responses;
 
 pub struct WebApi {}
 

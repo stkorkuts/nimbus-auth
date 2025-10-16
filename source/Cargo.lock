@@ -1589,6 +1589,7 @@ dependencies = [
  "nimbus_auth_domain",
  "nimbus_auth_proto",
  "nimbus_auth_shared",
+ "prost 0.12.6",
  "rand 0.8.5",
  "sqlx",
  "thiserror",

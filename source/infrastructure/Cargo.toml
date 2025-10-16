@@ -21,6 +21,7 @@ zeroize.workspace = true
 argon2.workspace = true
 rand.workspace = true
 ed25519-dalek.workspace = true
+prost.workspace = true
 
 # Crate specific dependencies
 axum = {version = "0.8.4", default-features = false, features = ["http1", "http2", "tokio", "tracing"] }
