@@ -20,15 +20,14 @@ use crate::{
             value_objects::{password::Password, password_hash::PasswordHash, user_name::UserName},
         },
     },
-    value_objects::access_token::AccessToken,
+    value_objects::{
+        access_token::{AccessToken, errors::VerifyError},
+        identifier::Identifier,
+    },
 };
 
 const VALID_USER_NAME: &str = "validuser123";
 const VALID_PASSWORD: &str = "StrongPassword123!";
-const PRIVATE_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
-MC4CAQAwBQYDK2VwBCIEIMUBs5zfkuEGgSLwrUo2vln82Z8hUySsoI+dyA3AonDV
------END PRIVATE KEY-----
-";
 
 fn get_user() -> User {
     let user_name = UserName::from(VALID_USER_NAME)
@@ -70,4 +69,78 @@ fn encode_decode() {
 
     let result = AccessToken::verify_with_active(&signed_token, keypair);
     assert!(matches!(result, Ok(..)));
+}
+
+#[test]
+fn verify_key_extraction() {
+    let user = get_user();
+    let keypair = get_keypair();
+
+    let access_token = AccessToken::new(
+        user.id().clone(),
+        OffsetDateTime::now_utc(),
+        AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
+    );
+    let signed_token = access_token
+        .sign(&keypair)
+        .expect("token should have been signed successfully");
+
+    let keypair_id: Identifier<ulid::Ulid, KeyPair<Active>> =
+        AccessToken::extract_keypair_id(&signed_token)
+            .expect("signed token should have contained valid keypair id")
+            .as_other_entity();
+
+    assert_eq!(keypair.id(), &keypair_id);
+}
+
+#[test]
+fn encode_decode_with_wrong_key() {
+    let user = get_user();
+    let keypair = get_keypair();
+    let wrong_keypair = get_keypair();
+
+    let access_token = AccessToken::new(
+        user.id().clone(),
+        OffsetDateTime::now_utc(),
+        AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
+    );
+    let signed_token = access_token
+        .sign(&keypair)
+        .expect("token should have been signed successfully");
+
+    let result = AccessToken::verify_with_active(&signed_token, wrong_keypair);
+    assert!(matches!(result, Err(VerifyError::KeyPairIdsDoNotMatch)));
+}
+
+#[test]
+fn modified_token() {
+    let user = get_user();
+    let keypair = get_keypair();
+
+    let access_token = AccessToken::new(
+        user.id().clone(),
+        OffsetDateTime::now_utc(),
+        AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
+    );
+    let signed_token = access_token
+        .sign(&keypair)
+        .expect("token should have been signed successfully");
+
+    let mut token_parts: Vec<String> = signed_token
+        .split(".")
+        .map(|part| part.to_string())
+        .collect();
+    let mut payload_bytes = token_parts[1].as_bytes().to_vec();
+    let middle = payload_bytes.len() / 2;
+    if payload_bytes[middle] == b'a' {
+        payload_bytes[middle] = b'b';
+    } else {
+        payload_bytes[middle] = b'a';
+    }
+    token_parts[1] =
+        String::from_utf8(payload_bytes).expect("payload bytes should still be valid utf8 string");
+    let tampered_token = token_parts.join(".");
+
+    let result = AccessToken::verify_with_active(&tampered_token, keypair);
+    assert!(matches!(result, Err(VerifyError::Decoding(..))));
 }

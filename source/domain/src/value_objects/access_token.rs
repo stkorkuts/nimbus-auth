@@ -19,7 +19,7 @@ use crate::{
     },
     value_objects::{
         access_token::errors::{ExtractKeyIdError, SignAccessTokenError, VerifyError},
-        identifier::Identifier,
+        identifier::{Identifier, IdentifierOfType},
     },
 };
 
@@ -81,7 +81,7 @@ impl AccessToken {
         Ok(token)
     }
 
-    pub fn extract_key_id(
+    pub fn extract_keypair_id(
         signed_token: &str,
     ) -> Result<Identifier<Ulid, SomeKeyPair>, ExtractKeyIdError> {
         let header =
@@ -96,17 +96,34 @@ impl AccessToken {
         signed_token: &str,
         keypair: KeyPair<Active>,
     ) -> Result<AccessToken, VerifyError> {
-        AccessToken::verify(signed_token, &keypair.value().public_key_pem())
+        AccessToken::verify(
+            signed_token,
+            keypair.id().clone().as_other_entity(),
+            &keypair.value().public_key_pem(),
+        )
     }
 
     pub fn verify_with_expiring(
         signed_token: &str,
         keypair: KeyPair<Expiring>,
     ) -> Result<AccessToken, VerifyError> {
-        AccessToken::verify(signed_token, &keypair.value().public_key_pem())
+        AccessToken::verify(
+            signed_token,
+            keypair.id().clone().as_other_entity(),
+            &keypair.value().public_key_pem(),
+        )
     }
 
-    fn verify(signed_token: &str, public_key_pem: &str) -> Result<AccessToken, VerifyError> {
+    fn verify(
+        signed_token: &str,
+        expected_keypair_id: Identifier<Ulid, SomeKeyPair>,
+        public_key_pem: &str,
+    ) -> Result<AccessToken, VerifyError> {
+        let actual_key_id = Self::extract_keypair_id(signed_token)?;
+        if actual_key_id != expected_keypair_id {
+            return Err(VerifyError::KeyPairIdsDoNotMatch);
+        }
+
         let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_audience(&[ACCESS_TOKEN_AUDIENCE]);
         let mut issuer = HashSet::with_capacity(1);

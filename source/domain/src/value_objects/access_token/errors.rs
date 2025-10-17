@@ -22,6 +22,10 @@ pub enum ExtractKeyIdError {
 
 #[derive(Debug, Error)]
 pub enum VerifyError {
+    #[error(transparent)]
+    ExtractKeyId(#[from] ExtractKeyIdError),
+    #[error("keypair ids do not match")]
+    KeyPairIdsDoNotMatch,
     #[error("invalid decoding key. Error: {0}")]
     InvalidDecodingKey(#[source] Error),
     #[error("decoding error: {0}")]
