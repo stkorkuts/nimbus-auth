@@ -1,6 +1,6 @@
 use axum::{
     body::Bytes,
-    http::{HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
 };
 use prost::Message;
@@ -24,7 +24,7 @@ impl<T: Message> IntoResponse for ProtoResponse<T> {
         let bytes = self.message.encode_to_vec();
         let mut headers = HeaderMap::new();
         headers.insert(
-            "content-type",
+            CONTENT_TYPE,
             HeaderValue::from_static("application/x-protobuf"),
         );
         (self.status_code, headers, Bytes::from(bytes)).into_response()

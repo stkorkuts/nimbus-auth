@@ -36,7 +36,7 @@ pub async fn handle_rotate_keypairs(
         }
     };
 
-    todo!();
+    
 
     ProtoResponse::new(
         StatusCode::OK,

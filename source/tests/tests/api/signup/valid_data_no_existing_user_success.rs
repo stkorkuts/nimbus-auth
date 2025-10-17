@@ -1,8 +1,6 @@
 use std::{error::Error, path::PathBuf, str::FromStr};
 
-use nimbus_auth_domain::entities::keypair::{
-    SomeKeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
-};
+use nimbus_auth_domain::entities::keypair::SomeKeyPair;
 use nimbus_auth_proto::proto::nimbus::auth::signup::v1::{
     SignUpRequestProto, SignUpResponseProto, sign_up_response_proto,
 };
@@ -10,9 +8,9 @@ use nimbus_auth_shared::{
     config::{AppConfigBuilder, AppConfigRequiredOptions},
     errors::ErrorBoxed,
 };
+use nimbus_auth_tests::utils::get_active_keypair;
 use prost::Message;
-use reqwest::Client;
-use zeroize::Zeroizing;
+use reqwest::{Client, header::CONTENT_TYPE};
 
 use crate::api::{ApiTestState, run_api_test};
 
@@ -20,10 +18,11 @@ const SERVER_ADDR: &str = "localhost:5001";
 const KEYPAIRS_STORE_PATH: &str = "/temp";
 const POSTGRES_DB_URL: &str =
     "postgresql://<username>:<password>@<host>:<port>/<database>?<options>";
-const PRIVATE_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
-MC4CAQAwBQYDK2VwBCIEIMUBs5zfkuEGgSLwrUo2vln82Z8hUySsoI+dyA3AonDV
------END PRIVATE KEY-----
-";
+
+const VALID_USER_NAME: &str = "stanislau";
+const VALID_PASSWORD: &str = "StrongPassword123!";
+
+const ENDPOINT: &str = "signup";
 
 #[tokio::test]
 async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
@@ -34,9 +33,7 @@ async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
     })
     .build()?;
 
-    let active_keypair = SomeKeyPair::new(NewKeyPairSpecification {
-        value: KeyPairValue::from_pem(Zeroizing::new(PRIVATE_KEY_PEM.to_string()))?,
-    });
+    let active_keypair = get_active_keypair();
 
     let test_state = ApiTestState {
         users: None,
@@ -51,21 +48,19 @@ async fn valid_data_no_existing_user() -> Result<(), Box<dyn Error>> {
 
 async fn test_action() -> Result<(), ErrorBoxed> {
     // arrange
-    let user_name = "stanislau";
-    let password = "StrongPassword123!";
 
     // act
     let signup_request_proto = SignUpRequestProto {
-        user_name: user_name.to_string(),
-        password: password.to_string(),
+        user_name: VALID_USER_NAME.to_string(),
+        password: VALID_PASSWORD.to_string(),
     };
     let mut request_payload = Vec::new();
     signup_request_proto.encode(&mut request_payload)?;
 
     let client = Client::new();
     let response = client
-        .post(format!("{SERVER_ADDR}/signup"))
-        .header("Content-Type", "application/x-protobuf")
+        .post(format!("{SERVER_ADDR}/{ENDPOINT}"))
+        .header(CONTENT_TYPE, "application/x-protobuf")
         .body(request_payload)
         .send()
         .await?;
@@ -91,10 +86,10 @@ async fn test_action() -> Result<(), ErrorBoxed> {
         .user
         .ok_or(ErrorBoxed::from_str("got empty user from api"))?;
 
-    if user_proto.user_name != user_name {
+    if user_proto.user_name != VALID_USER_NAME {
         return Err(ErrorBoxed::from_str(format!(
             "user_name changed when calling api: from {} to {}",
-            user_name, user_proto.user_name
+            VALID_USER_NAME, user_proto.user_name
         )));
     }
 

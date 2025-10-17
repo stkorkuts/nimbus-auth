@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, State},
-    http::{StatusCode, request::Parts},
+    http::{StatusCode, header::AUTHORIZATION, request::Parts},
 };
 use nimbus_auth_application::use_cases::{AuthorizationRequest, UseCases, UserDto};
 use tracing::error;
@@ -30,7 +30,7 @@ impl FromRequestParts<UseCases> for Authorization {
             let authorization_result = async {
                 let access_token = parts
                     .headers
-                    .get("authorization")
+                    .get(AUTHORIZATION)
                     .ok_or(AuthorizationExtractorError::AuthHeaderIsMissing)?
                     .to_str()
                     .map_err(|_| AuthorizationExtractorError::AuthHeaderContainsNonAscii)?
