@@ -1,4 +1,3 @@
-use nimbus_auth_application::services::user_repository::errors::UserRepositoryError;
 use nimbus_auth_domain::{
     entities::{
         Entity,
@@ -10,14 +9,22 @@ use nimbus_auth_domain::{
     },
     value_objects::identifier::Identifier,
 };
-use nimbus_auth_shared::errors::ErrorBoxed;
+use nimbus_auth_shared::types::UserRole;
 use sqlx::prelude::FromRow;
 use ulid::Ulid;
+
+use crate::{
+    postgres_db::types::user_role::UserRoleDb,
+    services_implementations::postgres_user_repository::schema::errors::TryFromUserDbError,
+};
+
+pub mod errors;
 
 #[derive(FromRow)]
 pub struct GetUserDb {
     pub id: String,
     pub user_name: String,
+    pub role: UserRoleDb,
     pub password_hash: String,
 }
 
@@ -25,15 +32,19 @@ pub struct GetUserDb {
 pub struct SaveUserDb {
     pub id: String,
     pub user_name: String,
+    pub role: UserRoleDb,
     pub password_hash: String,
 }
 
-impl GetUserDb {
-    pub fn into_domain(self) -> Result<User, UserRepositoryError> {
+impl TryFrom<&GetUserDb> for User {
+    type Error = TryFromUserDbError;
+
+    fn try_from(value: &GetUserDb) -> Result<Self, Self::Error> {
         Ok(User::restore(RestoreUserSpecification {
-            id: Identifier::from(Ulid::from_string(&self.id).map_err(ErrorBoxed::from)?),
-            user_name: UserName::from(&self.user_name)?,
-            password_hash: PasswordHash::from(&self.password_hash)?,
+            id: Identifier::from(Ulid::from_string(&value.id)?),
+            user_name: UserName::from(&value.user_name)?,
+            role: UserRole::from(&value.role),
+            password_hash: PasswordHash::from(&value.password_hash)?,
         }))
     }
 }
@@ -43,6 +54,7 @@ impl From<&User> for SaveUserDb {
         SaveUserDb {
             id: value.id().to_string(),
             user_name: value.name().to_string(),
+            role: UserRoleDb::from(value.role()),
             password_hash: value.password_hash().to_string(),
         }
     }

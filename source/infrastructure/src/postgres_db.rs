@@ -17,6 +17,7 @@ use tokio::{
 use crate::postgres_db::errors::PostgresDatabaseError;
 
 pub mod errors;
+pub mod types;
 
 pub struct PostgresDatabase {
     pool: PgPool,

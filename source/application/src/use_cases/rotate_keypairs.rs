@@ -17,7 +17,7 @@ pub mod errors;
 pub mod schema;
 
 pub async fn handle_rotate_keypairs(
-    RotateKeyPairsRequest {}: RotateKeyPairsRequest,
+    RotateKeyPairsRequest { user }: RotateKeyPairsRequest,
     keypair_repository: Arc<dyn KeyPairRepository>,
     time_service: Arc<dyn TimeService>,
     random_service: Arc<dyn RandomService>,

@@ -11,6 +11,10 @@ use sqlx::prelude::FromRow;
 use time::OffsetDateTime;
 use ulid::Ulid;
 
+use crate::services_implementations::postgres_session_repository::schema::errors::SessionDbIntoDomainError;
+
+pub mod errors;
+
 #[derive(FromRow)]
 pub struct GetSessionDb {
     id: String,
@@ -31,10 +35,10 @@ impl GetSessionDb {
     pub fn into_domain(
         self,
         current_time: OffsetDateTime,
-    ) -> Result<SomeSession<'static>, SessionRepositoryError> {
+    ) -> Result<SomeSession<'static>, SessionDbIntoDomainError> {
         Ok(SomeSession::restore(RestoreSessionSpecification {
-            id: Identifier::from(Ulid::from_string(&self.id).map_err(ErrorBoxed::from)?),
-            user_id: Identifier::from(Ulid::from_string(&self.user_id).map_err(ErrorBoxed::from)?),
+            id: Identifier::from(Ulid::from_string(&self.id)?),
+            user_id: Identifier::from(Ulid::from_string(&self.user_id)?),
             expires_at: self.expires_at,
             revoked_at: self.revoked_at,
             current_time,

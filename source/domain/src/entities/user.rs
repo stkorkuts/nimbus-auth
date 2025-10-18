@@ -1,3 +1,4 @@
+use nimbus_auth_shared::types::UserRole;
 use ulid::Ulid;
 
 use crate::{
@@ -19,6 +20,7 @@ pub mod value_objects;
 pub struct User {
     id: Identifier<Ulid, User>,
     name: UserName,
+    role: UserRole,
     password_hash: PasswordHash,
 }
 
@@ -36,6 +38,7 @@ impl User {
             id: Identifier::new(),
             name: specs.user_name,
             password_hash: specs.password_hash,
+            role: UserRole::Default,
         }
     }
 
@@ -44,6 +47,7 @@ impl User {
             id: specs.id,
             name: specs.user_name,
             password_hash: specs.password_hash,
+            role: specs.role,
         }
     }
 
@@ -51,7 +55,15 @@ impl User {
         &self.name
     }
 
+    pub fn role(&self) -> &UserRole {
+        &self.role
+    }
+
     pub fn password_hash(&self) -> &PasswordHash {
         &self.password_hash
+    }
+
+    pub fn set_role(&mut self, role: UserRole) {
+        self.role = role;
     }
 }

@@ -13,7 +13,7 @@ use nimbus_auth_domain::{
 };
 use nimbus_auth_shared::{
     errors::ErrorBoxed,
-    futures::{StaticPinnedFuture, pin_future, pin_static_future, pin_static_future_error_boxed},
+    futures::{StaticPinnedFuture, pin_future, pin_static_future},
 };
 use sqlx::PgConnection;
 use ulid::Ulid;
@@ -80,7 +80,10 @@ impl UserRepository for PostgresUserRepository {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &id)
                 .await?
-                .map(|user_db| user_db.into_domain())
+                .map(|user_db| {
+                    User::try_from(&user_db)
+                        .map_err(|err| UserRepositoryError::UserRestoration(ErrorBoxed::from(err)))
+                })
                 .transpose()
         })
     }
@@ -95,7 +98,10 @@ impl UserRepository for PostgresUserRepository {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_name(&mut *connection, &user_name)
                 .await?
-                .map(|user_db| user_db.into_domain())
+                .map(|user_db| {
+                    User::try_from(&user_db)
+                        .map_err(|err| UserRepositoryError::UserRestoration(ErrorBoxed::from(err)))
+                })
                 .transpose()
         })
     }
@@ -110,7 +116,10 @@ impl UserRepository for PostgresUserRepository {
             let mut connection = db_clone.pool().acquire().await.map_err(ErrorBoxed::from)?;
             get_user_by_id(&mut *connection, &session_id)
                 .await?
-                .map(|user_db| user_db.into_domain())
+                .map(|user_db| {
+                    User::try_from(&user_db)
+                        .map_err(|err| UserRepositoryError::UserRestoration(ErrorBoxed::from(err)))
+                })
                 .transpose()
         })
     }
@@ -190,7 +199,12 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                     Box::new(Self {
                         transaction: result.0,
                     }) as Box<dyn UserRepositoryWithTransaction>,
-                    user.map(|db| db.into_domain()).transpose()?,
+                    user.map(|db| {
+                        User::try_from(&db).map_err(|err| {
+                            UserRepositoryError::UserRestoration(ErrorBoxed::from(err))
+                        })
+                    })
+                    .transpose()?,
                 )),
                 _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
                     "got invalid response for query",
@@ -219,7 +233,12 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                     Box::new(Self {
                         transaction: result.0,
                     }) as Box<dyn UserRepositoryWithTransaction>,
-                    user.map(|db| db.into_domain()).transpose()?,
+                    user.map(|db| {
+                        User::try_from(&db).map_err(|err| {
+                            UserRepositoryError::UserRestoration(ErrorBoxed::from(err))
+                        })
+                    })
+                    .transpose()?,
                 )),
                 _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
                     "got invalid response for query",
@@ -248,7 +267,12 @@ impl UserRepositoryWithTransaction for PostgresUserRepositoryWithTransaction {
                     Box::new(Self {
                         transaction: result.0,
                     }) as Box<dyn UserRepositoryWithTransaction>,
-                    user.map(|db| db.into_domain()).transpose()?,
+                    user.map(|db| {
+                        User::try_from(&db).map_err(|err| {
+                            UserRepositoryError::UserRestoration(ErrorBoxed::from(err))
+                        })
+                    })
+                    .transpose()?,
                 )),
                 _ => Err(UserRepositoryError::from(ErrorBoxed::from_str(
                     "got invalid response for query",

@@ -1,3 +1,4 @@
+use nimbus_auth_shared::types::UserRole;
 use ulid::Ulid;
 
 use crate::{
@@ -17,4 +18,5 @@ pub struct RestoreUserSpecification {
     pub id: Identifier<Ulid, User>,
     pub user_name: UserName,
     pub password_hash: PasswordHash,
+    pub role: UserRole,
 }
