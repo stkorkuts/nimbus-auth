@@ -1,10 +1,5 @@
-use axum::{
-    body::Bytes,
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    response::IntoResponse,
-};
-use nimbus_auth_application::use_cases::UseCases;
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
+use nimbus_auth_application::use_cases::{RotateKeyPairsError, RotateKeyPairsRequest, UseCases};
 use nimbus_auth_proto::proto::{
     RotateKeypairsErrorCodeProto, RotateKeypairsResponseProto, RotateKeypairsSuccessResponseProto,
     rotate_keypairs_response_proto::Result,
@@ -18,8 +13,6 @@ use crate::axum_api::{
 pub async fn handle_rotate_keypairs(
     State(use_cases): State<UseCases>,
     Authorization(auth_result): Authorization,
-    headers: HeaderMap,
-    body: Bytes,
 ) -> impl IntoResponse {
     let user = match auth_result {
         Ok(user) => user,
@@ -36,12 +29,35 @@ pub async fn handle_rotate_keypairs(
         }
     };
 
-    
+    let result = use_cases
+        .rotate_keypairs(RotateKeyPairsRequest { user })
+        .await;
 
-    ProtoResponse::new(
-        StatusCode::OK,
-        RotateKeypairsResponseProto {
-            result: Some(Result::Success(RotateKeypairsSuccessResponseProto {})),
-        },
-    )
+    match result {
+        Ok(_) => ProtoResponse::new(
+            StatusCode::OK,
+            RotateKeypairsResponseProto {
+                result: Some(Result::Success(RotateKeypairsSuccessResponseProto {})),
+            },
+        ),
+        Err(RotateKeyPairsError::Forbidden(_)) => ProtoResponse::new(
+            StatusCode::FORBIDDEN,
+            RotateKeypairsResponseProto {
+                result: Some(Result::Error(
+                    RotateKeypairsErrorCodeProto::Forbidden.into(),
+                )),
+            },
+        ),
+        Err(err) => {
+            error!("error while rotating keypairs: {err}");
+            ProtoResponse::new(
+                StatusCode::BAD_REQUEST,
+                RotateKeypairsResponseProto {
+                    result: Some(Result::Error(
+                        RotateKeypairsErrorCodeProto::Undefined.into(),
+                    )),
+                },
+            )
+        }
+    }
 }

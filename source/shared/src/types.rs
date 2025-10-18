@@ -1,3 +1,5 @@
+use crate::define_enum;
+
 #[derive(Clone, Copy, Debug)]
 pub struct SessionExpirationSeconds(pub usize);
 
@@ -7,8 +9,9 @@ pub struct AccessTokenExpirationSeconds(pub usize);
 #[derive(Clone, Copy, Debug)]
 pub struct PostgresDbMaxConnections(pub usize);
 
-#[derive(Clone, Copy, Debug)]
-pub enum UserRole {
-    Default,
-    Admin,
+define_enum! {
+    pub enum UserRole {
+        Default,
+        Admin,
+    }
 }

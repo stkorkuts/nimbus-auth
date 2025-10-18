@@ -1,4 +1,5 @@
 use nimbus_auth_domain::entities::keypair::value_objects::errors::KeyPairValueError;
+use nimbus_auth_shared::types::UserRole;
 use thiserror::Error;
 
 use crate::services::{
@@ -8,6 +9,8 @@ use crate::services::{
 
 #[derive(Debug, Error)]
 pub enum RotateKeyPairsError {
+    #[error("operation forbiddden for a user with a role: {0}")]
+    Forbidden(UserRole),
     #[error(transparent)]
     RandomService(#[from] RandomServiceError),
     #[error(transparent)]

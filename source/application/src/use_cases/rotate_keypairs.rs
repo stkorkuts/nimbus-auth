@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use nimbus_auth_domain::entities::keypair::{
     SomeKeyPair, specifications::NewKeyPairSpecification, value_objects::KeyPairValue,
 };
-use nimbus_auth_shared::types::AccessTokenExpirationSeconds;
+use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, UserRole};
 
 use crate::{
     services::{
@@ -23,6 +23,10 @@ pub async fn handle_rotate_keypairs(
     random_service: Arc<dyn RandomService>,
     expiration_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RotateKeyPairsResponse, RotateKeyPairsError> {
+    if user.role != UserRole::Admin {
+        return Err(RotateKeyPairsError::Forbidden(user.role));
+    }
+
     let private_key_pem = random_service.get_random_private_key_pem().await?;
     let keypair_value = KeyPairValue::from_pem(private_key_pem)?;
 
