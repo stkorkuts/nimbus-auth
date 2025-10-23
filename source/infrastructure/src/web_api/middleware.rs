@@ -2,7 +2,7 @@ use axum::Router;
 use nimbus_auth_shared::config::AppConfig;
 use tower_http::trace::TraceLayer;
 
-use crate::axum_api::middleware::{
+use crate::web_api::middleware::{
     cors::apply_cors_middleware, errors::MiddlewareError, hsts::apply_hsts_middleware,
     rate_limiting::apply_rate_limiting_middleware,
 };

@@ -5,7 +5,7 @@ use axum::{
 use nimbus_auth_application::use_cases::{AuthorizationRequest, UseCases, UserClaimsDto};
 use tracing::error;
 
-use crate::axum_api::extractors::authorization_extractor::errors::AuthorizationExtractorError;
+use crate::web_api::extractors::authorization_extractor::errors::AuthorizationExtractorError;
 
 pub mod errors;
 

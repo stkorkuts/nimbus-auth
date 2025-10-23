@@ -2,7 +2,7 @@ use std::{env, sync::Arc};
 
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
 use nimbus_auth_infrastructure::{
-    axum_api::WebApi,
+    web_api::WebApi,
     postgres_db::PostgresDatabase,
     services_implementations::{
         filesystem_inmemory_cached_keypair_repository::FileSystemInMemoryCachedKeyPairRepository,

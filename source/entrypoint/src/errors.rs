@@ -1,4 +1,4 @@
-use nimbus_auth_infrastructure::axum_api::errors::WebApiError;
+use nimbus_auth_infrastructure::web_api::errors::WebApiError;
 use nimbus_auth_shared::errors::ErrorBoxed;
 use thiserror::Error;
 use tokio::io;

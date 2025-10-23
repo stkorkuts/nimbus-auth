@@ -4,7 +4,7 @@ use axum::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
-use crate::axum_api::middleware::cors::errors::CorsMiddlewareError;
+use crate::web_api::middleware::cors::errors::CorsMiddlewareError;
 
 pub mod errors;
 

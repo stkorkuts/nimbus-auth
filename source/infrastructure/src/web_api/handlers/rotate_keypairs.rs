@@ -6,7 +6,7 @@ use nimbus_auth_proto::proto::{
 };
 use tracing::error;
 
-use crate::axum_api::{
+use crate::web_api::{
     extractors::authorization_extractor::Authorization, responses::proto::ProtoResponse,
 };
 

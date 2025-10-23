@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::axum_api::middleware::cors::errors::CorsMiddlewareError;
+use crate::web_api::middleware::cors::errors::CorsMiddlewareError;
 
 #[derive(Error, Debug)]
 pub enum MiddlewareError {

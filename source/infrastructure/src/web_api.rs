@@ -6,7 +6,7 @@ use nimbus_auth_application::use_cases::UseCases;
 use nimbus_auth_shared::config::AppConfig;
 use tokio::{net::TcpListener, sync::oneshot};
 
-use crate::axum_api::{
+use crate::web_api::{
     errors::WebApiError,
     handlers::{
         get_public_key::handle_get_public_key, refresh::handle_refresh,

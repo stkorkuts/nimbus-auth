@@ -24,6 +24,7 @@ pub async fn handle_authorize<'a>(
         .get_by_id(keypair_id.as_other_entity_ref())
         .await?
         .ok_or(AuthorizationError::KeyPairNotFound)?;
+
     let access_token = match keypair {
         SomeKeyPair::Active(active) => AccessToken::verify_with_active(signed_token, &active),
         SomeKeyPair::Expiring(expiring) => {
@@ -32,6 +33,8 @@ pub async fn handle_authorize<'a>(
         SomeKeyPair::Expired(_) => return Err(AuthorizationError::KeyPairExpired),
         SomeKeyPair::Revoked(_) => return Err(AuthorizationError::KeyPairRevoked),
     }?;
-    let user_dto = UserClaimsDto::from(access_token.user_claims());
-    todo!()
+
+    Ok(AuthorizationResponse {
+        user: UserClaimsDto::from(access_token.user_claims()),
+    })
 }

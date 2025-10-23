@@ -1,7 +1,7 @@
 use thiserror::Error;
 use tokio::{io, sync::oneshot::error::RecvError};
 
-use crate::axum_api::middleware::errors::MiddlewareError;
+use crate::web_api::middleware::errors::MiddlewareError;
 
 #[derive(Debug, Error)]
 pub enum WebApiError {
