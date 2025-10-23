@@ -13,7 +13,7 @@ use crate::{
         time_service::TimeService, user_repository::UserRepository,
     },
     use_cases::{
-        UserDto,
+        UserClaimsDto,
         signin::{
             errors::SignInError,
             schema::{SignInRequest, SignInResponse},
@@ -58,7 +58,7 @@ pub async fn handle_signin<'a>(
         .ok_or(SignInError::ActiveKeyPairNotFound)?;
 
     let session = SomeSession::new(NewSessionSpecification {
-        user_id: user.id().clone(),
+        user_claims: user.claims().clone(),
         current_time: time_service.get_current_time().await?,
         expiration_seconds: session_exp_seconds,
     });
@@ -78,7 +78,7 @@ pub async fn handle_signin<'a>(
     transactional_session_repository.commit().await?;
 
     Ok(SignInResponse {
-        user: UserDto::from(&user),
+        user: UserClaimsDto::from(user.claims()),
         session_id: session.id().to_string(),
         signed_access_token,
     })

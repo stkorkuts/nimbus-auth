@@ -17,5 +17,18 @@ macro_rules! define_enum {
                 }
             }
         }
+
+        impl ::core::convert::TryFrom<&str> for $name {
+            type Error = String;
+
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                match value {
+                    $(
+                        stringify!($variant) => Ok(Self::$variant),
+                    )+
+                    _ => Err(format!("invalid value for {} enum. supported values are: {}", stringify!($name), vec![$(stringify!($variant)),+].join(", ")))
+                }
+            }
+        }
     };
 }

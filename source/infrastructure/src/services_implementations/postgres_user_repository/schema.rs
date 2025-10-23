@@ -7,7 +7,7 @@ use nimbus_auth_domain::{
             value_objects::{password_hash::PasswordHash, user_name::UserName},
         },
     },
-    value_objects::identifier::Identifier,
+    value_objects::{identifier::Identifier, user_claims::UserClaims},
 };
 use nimbus_auth_shared::types::UserRole;
 use sqlx::prelude::FromRow;
@@ -40,10 +40,13 @@ impl TryFrom<&GetUserDb> for User {
     type Error = TryFromUserDbError;
 
     fn try_from(value: &GetUserDb) -> Result<Self, Self::Error> {
+        let claims = UserClaims::new(
+            Identifier::from(Ulid::from_string(&value.id)?),
+            UserName::from(&value.user_name)?,
+            UserRole::from(&value.role),
+        );
         Ok(User::restore(RestoreUserSpecification {
-            id: Identifier::from(Ulid::from_string(&value.id)?),
-            user_name: UserName::from(&value.user_name)?,
-            role: UserRole::from(&value.role),
+            claims,
             password_hash: PasswordHash::from(&value.password_hash)?,
         }))
     }

@@ -74,7 +74,7 @@ impl UseCases {
         &self,
         request: AuthorizationRequest<'a>,
     ) -> Result<AuthorizationResponse, AuthorizationError> {
-        handle_authorize(request).await
+        handle_authorize(request, self.services.keypair_repository.clone()).await
     }
 
     pub async fn rotate_keypairs(

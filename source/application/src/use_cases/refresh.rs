@@ -12,7 +12,7 @@ use crate::{
         keypair_repository::KeyPairRepository, session_repository::SessionRepository,
         time_service::TimeService, user_repository::UserRepository,
     },
-    use_cases::{RefreshRequest, RefreshResponse, UserDto, refresh::errors::RefreshError},
+    use_cases::{RefreshRequest, RefreshResponse, UserClaimsDto, refresh::errors::RefreshError},
 };
 
 pub mod errors;
@@ -71,7 +71,7 @@ pub async fn handle_refresh(
     transactional_session_repository.commit().await?;
 
     Ok(RefreshResponse {
-        user: UserDto::from(&user),
+        user: UserClaimsDto::from(user.claims()),
         session_id: new_active_session.id().to_string(),
         signed_access_token,
     })

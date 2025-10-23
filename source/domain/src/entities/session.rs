@@ -13,6 +13,7 @@ use crate::{
     value_objects::{
         access_token::AccessToken,
         identifier::{Identifier, IdentifierOfType},
+        user_claims::{self, UserClaims},
     },
 };
 
@@ -23,7 +24,7 @@ pub trait SessionState {}
 
 #[derive(Debug, Clone)]
 pub struct Active {
-    user_id: Identifier<Ulid, User>,
+    user_claims: UserClaims,
     expires_at: OffsetDateTime,
 }
 
@@ -77,7 +78,7 @@ impl<'a> Entity<Ulid> for SomeSession<'a> {
 impl SomeSession<'_> {
     pub fn new(
         NewSessionSpecification {
-            user_id,
+            user_claims,
             current_time,
             expiration_seconds: SessionExpirationSeconds(expiration_seconds),
         }: NewSessionSpecification,
@@ -85,7 +86,7 @@ impl SomeSession<'_> {
         Session {
             id: Identifier::new(),
             state: Active {
-                user_id,
+                user_claims,
                 expires_at: current_time + time::Duration::seconds(expiration_seconds as i64),
             },
         }
@@ -94,7 +95,7 @@ impl SomeSession<'_> {
     pub fn restore(
         RestoreSessionSpecification {
             id,
-            user_id,
+            user_claims,
             revoked_at,
             expires_at,
             current_time,
@@ -109,7 +110,7 @@ impl SomeSession<'_> {
                 true => SomeSession::from(Session {
                     id: id.as_other_entity(),
                     state: Active {
-                        user_id,
+                        user_claims,
                         expires_at,
                     },
                 }),
@@ -154,7 +155,7 @@ impl Session<Active> {
         current_time: OffsetDateTime,
         expiration_seconds: SessionExpirationSeconds,
     ) -> (Session<Revoked>, Session<Active>) {
-        let user_id = self.user_id.clone();
+        let user_claims = self.user_claims.clone();
         (
             Session {
                 id: self.id.as_other_entity(),
@@ -163,7 +164,7 @@ impl Session<Active> {
                 },
             },
             SomeSession::new(NewSessionSpecification {
-                user_id,
+                user_claims,
                 current_time,
                 expiration_seconds,
             }),
@@ -175,15 +176,15 @@ impl Session<Active> {
         current_time: OffsetDateTime,
         expiration_seconds: AccessTokenExpirationSeconds,
     ) -> AccessToken {
-        AccessToken::new(self.user_id.clone(), current_time, expiration_seconds)
+        AccessToken::new(self.user_claims.clone(), current_time, expiration_seconds)
     }
 
     pub fn expires_at(&self) -> OffsetDateTime {
         self.expires_at
     }
 
-    pub fn user_id(&self) -> &Identifier<Ulid, User> {
-        &self.user_id
+    pub fn user_claims(&self) -> &UserClaims {
+        &self.user_claims
     }
 }
 

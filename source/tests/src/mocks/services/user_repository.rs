@@ -87,7 +87,7 @@ impl UserRepository for MockUserRepository {
         session: &Session<Active>,
     ) -> StaticPinnedFuture<Option<User>, UserRepositoryError> {
         let datastore_clone: Arc<MockDatastore> = self.datastore.clone();
-        let user_id = session.user_id().clone();
+        let user_id = session.user_claims().id().clone();
         pin_static_future(async move {
             Ok(datastore_clone
                 .users()
@@ -175,7 +175,7 @@ impl UserRepositoryWithTransaction for MockUserRepositoryWithTransaction {
         (Box<dyn UserRepositoryWithTransaction>, Option<User>),
         UserRepositoryError,
     > {
-        let user_id = session.user_id().clone();
+        let user_id = session.user_claims().id().clone();
         pin_static_future(async move {
             let user = self
                 .datastore

@@ -59,7 +59,7 @@ fn encode_decode() {
     let keypair = get_keypair();
 
     let access_token = AccessToken::new(
-        user.id().clone(),
+        user.claims().clone(),
         OffsetDateTime::now_utc(),
         AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
     );
@@ -67,7 +67,7 @@ fn encode_decode() {
         .sign(&keypair)
         .expect("token should have been signed successfully");
 
-    let result = AccessToken::verify_with_active(&signed_token, keypair);
+    let result = AccessToken::verify_with_active(&signed_token, &keypair);
     assert!(matches!(result, Ok(..)));
 }
 
@@ -77,7 +77,7 @@ fn verify_key_extraction() {
     let keypair = get_keypair();
 
     let access_token = AccessToken::new(
-        user.id().clone(),
+        user.claims().clone(),
         OffsetDateTime::now_utc(),
         AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
     );
@@ -100,7 +100,7 @@ fn encode_decode_with_wrong_key() {
     let wrong_keypair = get_keypair();
 
     let access_token = AccessToken::new(
-        user.id().clone(),
+        user.claims().clone(),
         OffsetDateTime::now_utc(),
         AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
     );
@@ -108,7 +108,7 @@ fn encode_decode_with_wrong_key() {
         .sign(&keypair)
         .expect("token should have been signed successfully");
 
-    let result = AccessToken::verify_with_active(&signed_token, wrong_keypair);
+    let result = AccessToken::verify_with_active(&signed_token, &wrong_keypair);
     assert!(matches!(result, Err(VerifyError::KeyPairIdsDoNotMatch)));
 }
 
@@ -118,7 +118,7 @@ fn modified_token() {
     let keypair = get_keypair();
 
     let access_token = AccessToken::new(
-        user.id().clone(),
+        user.claims().clone(),
         OffsetDateTime::now_utc(),
         AccessTokenExpirationSeconds(ACCESS_TOKEN_EXPIRATION_SECONDS_DEFAULT),
     );
@@ -141,6 +141,6 @@ fn modified_token() {
         String::from_utf8(payload_bytes).expect("payload bytes should still be valid utf8 string");
     let tampered_token = token_parts.join(".");
 
-    let result = AccessToken::verify_with_active(&tampered_token, keypair);
+    let result = AccessToken::verify_with_active(&tampered_token, &keypair);
     assert!(matches!(result, Err(VerifyError::Decoding(..))));
 }

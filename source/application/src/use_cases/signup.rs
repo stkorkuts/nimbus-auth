@@ -17,7 +17,7 @@ use crate::{
         session_repository::SessionRepository, time_service::TimeService,
         user_repository::UserRepository,
     },
-    use_cases::{SignUpRequest, SignUpResponse, UserDto, signup::errors::SignUpError},
+    use_cases::{SignUpRequest, SignUpResponse, UserClaimsDto, signup::errors::SignUpError},
 };
 
 pub mod errors;
@@ -61,7 +61,7 @@ pub async fn handle_signup<'a>(
     });
 
     let session = SomeSession::new(NewSessionSpecification {
-        user_id: user.id().clone(),
+        user_claims: user.claims().clone(),
         current_time: time_service.get_current_time().await?,
         expiration_seconds: session_exp_seconds,
     });
@@ -86,7 +86,7 @@ pub async fn handle_signup<'a>(
     transactional_user_repository.commit().await?;
 
     Ok(SignUpResponse {
-        user: UserDto::from(&user),
+        user: UserClaimsDto::from(user.claims()),
         session_id: session.id().to_string(),
         signed_access_token,
     })

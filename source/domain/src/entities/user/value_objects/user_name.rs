@@ -46,6 +46,6 @@ impl UserName {
 
 impl Display for UserName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "User name: {}", self.value)
+        write!(f, "{}", self.value)
     }
 }

@@ -1,14 +1,14 @@
-use nimbus_auth_domain::entities::{Entity, user::User};
+use nimbus_auth_domain::value_objects::user_claims::UserClaims;
 use nimbus_auth_shared::types::UserRole;
 
-pub struct UserDto {
+pub struct UserClaimsDto {
     pub id: String,
     pub name: String,
     pub role: UserRole,
 }
 
-impl From<&User> for UserDto {
-    fn from(value: &User) -> Self {
+impl From<&UserClaims> for UserClaimsDto {
+    fn from(value: &UserClaims) -> Self {
         Self {
             id: value.id().to_string(),
             name: value.name().to_string(),

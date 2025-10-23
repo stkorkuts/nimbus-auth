@@ -2,14 +2,14 @@ use axum::{
     extract::{FromRequestParts, State},
     http::{StatusCode, header::AUTHORIZATION, request::Parts},
 };
-use nimbus_auth_application::use_cases::{AuthorizationRequest, UseCases, UserDto};
+use nimbus_auth_application::use_cases::{AuthorizationRequest, UseCases, UserClaimsDto};
 use tracing::error;
 
 use crate::axum_api::extractors::authorization_extractor::errors::AuthorizationExtractorError;
 
 pub mod errors;
 
-pub struct Authorization(pub Result<UserDto, AuthorizationExtractorError>);
+pub struct Authorization(pub Result<UserClaimsDto, AuthorizationExtractorError>);
 
 impl FromRequestParts<UseCases> for Authorization {
     type Rejection = (StatusCode, &'static str);
@@ -28,7 +28,7 @@ impl FromRequestParts<UseCases> for Authorization {
                 })?;
 
             let authorization_result = async {
-                let access_token = parts
+                let signed_token = parts
                     .headers
                     .get(AUTHORIZATION)
                     .ok_or(AuthorizationExtractorError::AuthHeaderIsMissing)?
@@ -38,10 +38,10 @@ impl FromRequestParts<UseCases> for Authorization {
                     .ok_or(AuthorizationExtractorError::AuthHeaderWrongSchema)?;
 
                 let authorized_user = use_cases
-                    .authorize(AuthorizationRequest { access_token })
+                    .authorize(AuthorizationRequest { signed_token })
                     .await?;
 
-                Ok::<UserDto, AuthorizationExtractorError>(authorized_user.user)
+                Ok::<UserClaimsDto, AuthorizationExtractorError>(authorized_user.user)
             }
             .await;
 

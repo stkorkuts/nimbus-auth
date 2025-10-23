@@ -5,7 +5,7 @@ use jsonwebtoken::{
 };
 use nimbus_auth_shared::{
     constants::{ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER},
-    types::AccessTokenExpirationSeconds,
+    types::{AccessTokenExpirationSeconds, UserRole},
 };
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -15,11 +15,12 @@ use crate::{
     entities::{
         Entity,
         keypair::{Active, Expiring, KeyPair, SomeKeyPair},
-        user::User,
+        user::{User, value_objects::user_name::UserName},
     },
     value_objects::{
         access_token::errors::{ExtractKeyIdError, SignAccessTokenError, VerifyError},
         identifier::{Identifier, IdentifierOfType},
+        user_claims::UserClaims,
     },
 };
 
@@ -29,7 +30,7 @@ mod tests;
 
 #[derive(Debug, Clone)]
 pub struct AccessToken {
-    user_id: Identifier<Ulid, User>,
+    user_claims: UserClaims,
     expires_at: OffsetDateTime,
 }
 
@@ -39,22 +40,24 @@ struct Claims {
     exp: usize,
     iss: String,
     sub: String,
+    name: String,
+    role: String,
 }
 
 impl AccessToken {
     pub fn new(
-        user_id: Identifier<Ulid, User>,
+        user_claims: UserClaims,
         current_time: OffsetDateTime,
         AccessTokenExpirationSeconds(expiration_seconds): AccessTokenExpirationSeconds,
     ) -> AccessToken {
         AccessToken {
-            user_id,
+            user_claims,
             expires_at: current_time + time::Duration::seconds(expiration_seconds as i64),
         }
     }
 
-    pub fn user_id(&self) -> &Identifier<Ulid, User> {
-        &self.user_id
+    pub fn user_claims(&self) -> &UserClaims {
+        &self.user_claims
     }
 
     pub fn expires_at(&self) -> &OffsetDateTime {
@@ -70,7 +73,9 @@ impl AccessToken {
             aud: ACCESS_TOKEN_AUDIENCE.to_string(),
             exp: expiration_timestamp,
             iss: ACCESS_TOKEN_ISSUER.to_string(),
-            sub: self.user_id.to_string(),
+            sub: self.user_claims.id().to_string(),
+            name: self.user_claims.name().to_string(),
+            role: self.user_claims.role().to_string(),
         };
 
         let key = EncodingKey::from_ed_pem(keypair.value().private_key_pem().as_bytes())
@@ -94,7 +99,7 @@ impl AccessToken {
 
     pub fn verify_with_active(
         signed_token: &str,
-        keypair: KeyPair<Active>,
+        keypair: &KeyPair<Active>,
     ) -> Result<AccessToken, VerifyError> {
         AccessToken::verify(
             signed_token,
@@ -105,7 +110,7 @@ impl AccessToken {
 
     pub fn verify_with_expiring(
         signed_token: &str,
-        keypair: KeyPair<Expiring>,
+        keypair: &KeyPair<Expiring>,
     ) -> Result<AccessToken, VerifyError> {
         AccessToken::verify(
             signed_token,
@@ -137,13 +142,19 @@ impl AccessToken {
             .map_err(|err| VerifyError::Decoding(err))?
             .claims;
 
-        let user_id = Ulid::from_string(&claims.sub)
+        let user_id = Identifier::from(
+            Ulid::from_string(claims.sub.as_str())
+                .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?,
+        );
+        let user_name = UserName::from(claims.name.as_str())
             .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?;
+        let user_role = UserRole::try_from(claims.role.as_str())
+            .map_err(|err| VerifyError::InvalidClaims(err))?;
         let expires_at = OffsetDateTime::from_unix_timestamp(claims.exp as i64)
             .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?;
 
         Ok(AccessToken {
-            user_id: Identifier::from(user_id),
+            user_claims: UserClaims::new(user_id, user_name, user_role),
             expires_at,
         })
     }
