@@ -1,5 +1,5 @@
 pub struct GetPublicKeyRequest<'a> {
-    pub key_id: &'a str,
+    pub key_id: Option<&'a str>,
 }
 
 pub struct GetPublicKeyResponse {

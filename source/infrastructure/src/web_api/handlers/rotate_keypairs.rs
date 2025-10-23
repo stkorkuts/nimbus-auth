@@ -17,7 +17,7 @@ pub async fn handle_rotate_keypairs(
     let user = match auth_result {
         Ok(user) => user,
         Err(err) => {
-            error!("can not extract authenticated user in handle_rotate_keypairs. error: {err}");
+            error!("error extracting authorization data in handle_rotate_keypairs handler: {err}");
             return ProtoResponse::new(
                 StatusCode::UNAUTHORIZED,
                 RotateKeypairsResponseProto {
@@ -49,9 +49,9 @@ pub async fn handle_rotate_keypairs(
             },
         ),
         Err(err) => {
-            error!("error while rotating keypairs: {err}");
+            error!("error in handle_rotate_keypairs handler: {err}");
             ProtoResponse::new(
-                StatusCode::BAD_REQUEST,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 RotateKeypairsResponseProto {
                     result: Some(Result::Error(
                         RotateKeypairsErrorCodeProto::Undefined.into(),

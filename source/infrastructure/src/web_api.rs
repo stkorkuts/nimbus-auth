@@ -1,5 +1,6 @@
 use axum::{
     Router,
+    extract::{Path, State},
     routing::{get, post},
 };
 use nimbus_auth_application::use_cases::UseCases;
@@ -9,8 +10,11 @@ use tokio::{net::TcpListener, sync::oneshot};
 use crate::web_api::{
     errors::WebApiError,
     handlers::{
-        get_public_key::handle_get_public_key, refresh::handle_refresh,
-        rotate_keypairs::handle_rotate_keypairs, signin::handle_signin, signup::handle_signup,
+        get_public_key::{handle_get_active_public_key, handle_get_public_key_by_id},
+        refresh::handle_refresh,
+        rotate_keypairs::handle_rotate_keypairs,
+        signin::handle_signin,
+        signup::handle_signup,
     },
     middleware::apply_middleware,
 };
@@ -33,11 +37,15 @@ impl WebApi {
             oneshot::channel::<Result<(), WebApiError>>();
 
         let mut router = Router::new()
-            .route("/rotate_keypairs", post(handle_rotate_keypairs))
-            .route("/get_public_key", get(handle_get_public_key))
-            .route("/signup", post(handle_signup))
-            .route("/signin", post(handle_signin))
-            .route("/refresh", post(handle_refresh))
+            .route("/keypairs/rotate", post(handle_rotate_keypairs))
+            .route("/public_keys/active", get(handle_get_active_public_key))
+            .route(
+                "/public_keys/by_id/:key_id",
+                get(handle_get_public_key_by_id),
+            )
+            .route("/auth/signup", post(handle_signup))
+            .route("/auth/signin", post(handle_signin))
+            .route("/auth/refresh", post(handle_refresh))
             .with_state(use_cases);
 
         router = apply_middleware(router, config)?;

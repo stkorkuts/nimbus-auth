@@ -19,12 +19,20 @@ pub async fn handle_get_public_key<'a>(
     GetPublicKeyRequest { key_id }: GetPublicKeyRequest<'a>,
     keypair_repository: Arc<dyn KeyPairRepository>,
 ) -> Result<GetPublicKeyResponse, GetPublicKeyError> {
-    let keypair = keypair_repository
-        .get_by_id(&Identifier::from(
-            Ulid::from_str(key_id).map_err(ErrorBoxed::from)?,
-        ))
-        .await?
-        .ok_or(GetPublicKeyError::KeyPairNotFound)?;
+    let keypair = match key_id {
+        Some(key_id) => keypair_repository
+            .get_by_id(&Identifier::from(
+                Ulid::from_str(key_id).map_err(ErrorBoxed::from)?,
+            ))
+            .await?
+            .ok_or(GetPublicKeyError::KeyPairNotFound)?,
+        None => SomeKeyPair::from(
+            keypair_repository
+                .get_active()
+                .await?
+                .ok_or(GetPublicKeyError::KeyPairNotFound)?,
+        ),
+    };
 
     Ok(GetPublicKeyResponse {
         public_key_pem: match keypair {
