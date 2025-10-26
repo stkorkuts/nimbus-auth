@@ -1,12 +1,5 @@
-use axum::{
-    body::Bytes,
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-};
-use nimbus_auth_application::use_cases::{
-    SignUpError, SignUpRequest, UseCases,
-};
+use axum::{body::Bytes, extract::State, http::StatusCode, response::IntoResponse};
+use nimbus_auth_application::use_cases::{SignUpError, SignUpRequest, UseCases};
 use nimbus_auth_proto::proto::nimbus::auth::signup::v1::{
     SignUpErrorCodeProto, SignUpRequestProto, SignUpResponseProto, SignUpSuccessResponseProto,
     sign_up_response_proto::{self},
@@ -17,10 +10,7 @@ use zeroize::Zeroizing;
 
 use crate::{
     converters::{convert_access_token_into_proto, convert_user_into_proto},
-    web_api::{
-        extractors::client_extractor::Client,
-        responses::proto::ProtoResponse,
-    },
+    web_api::{extractors::client_extractor::Client, responses::proto::ProtoResponse},
 };
 
 pub async fn handle_signup(

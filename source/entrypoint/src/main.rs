@@ -2,7 +2,6 @@ use std::{env, sync::Arc};
 
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
 use nimbus_auth_infrastructure::{
-    web_api::WebApi,
     postgres_db::PostgresDatabase,
     services_implementations::{
         filesystem_inmemory_cached_keypair_repository::FileSystemInMemoryCachedKeyPairRepository,
@@ -10,6 +9,7 @@ use nimbus_auth_infrastructure::{
         postgres_session_repository::PostgresSessionRepository,
         postgres_user_repository::PostgresUserRepository,
     },
+    web_api::WebApi,
 };
 use nimbus_auth_shared::{
     config::{AppConfig, AppConfigBuilder, AppConfigRequiredOptions},

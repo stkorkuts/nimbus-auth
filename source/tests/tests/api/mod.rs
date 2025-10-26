@@ -3,10 +3,10 @@ use std::sync::Arc;
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
 use nimbus_auth_domain::entities::{keypair::SomeKeyPair, session::SomeSession, user::User};
 use nimbus_auth_infrastructure::{
-    web_api::WebApi,
     services_implementations::{
         os_random_service::OsRandomService, os_time_service::OsTimeService,
     },
+    web_api::WebApi,
 };
 use nimbus_auth_shared::{config::AppConfig, errors::ErrorBoxed};
 use nimbus_auth_tests::mocks::{
