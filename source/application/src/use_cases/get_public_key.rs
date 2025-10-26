@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use nimbus_auth_domain::{
-    entities::keypair::{self, SomeKeyPair},
+    entities::keypair::SomeKeyPair,
     value_objects::identifier::Identifier,
 };
 use nimbus_auth_shared::errors::ErrorBoxed;

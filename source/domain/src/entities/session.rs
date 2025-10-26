@@ -8,12 +8,11 @@ use crate::{
     entities::{
         Entity,
         session::specifications::{NewSessionSpecification, RestoreSessionSpecification},
-        user::User,
     },
     value_objects::{
         access_token::AccessToken,
         identifier::{Identifier, IdentifierOfType},
-        user_claims::{self, UserClaims},
+        user_claims::UserClaims,
     },
 };
 

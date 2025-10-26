@@ -1,4 +1,3 @@
-use nimbus_auth_application::services::session_repository::errors::SessionRepositoryError;
 use nimbus_auth_domain::{
     entities::{
         Entity,
@@ -7,7 +6,7 @@ use nimbus_auth_domain::{
     },
     value_objects::{identifier::Identifier, user_claims::UserClaims},
 };
-use nimbus_auth_shared::{errors::ErrorBoxed, types::UserRole};
+use nimbus_auth_shared::types::UserRole;
 use sqlx::prelude::FromRow;
 use time::OffsetDateTime;
 use ulid::Ulid;

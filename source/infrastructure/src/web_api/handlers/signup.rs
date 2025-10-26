@@ -1,18 +1,16 @@
 use axum::{
     body::Bytes,
     extract::State,
-    http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
+    http::StatusCode,
     response::IntoResponse,
 };
-use axum_extra::extract::cookie::{Cookie, SameSite};
 use nimbus_auth_application::use_cases::{
-    SessionDto, SignUpError, SignUpRequest, SignUpResponse, UseCases,
+    SignUpError, SignUpRequest, UseCases,
 };
 use nimbus_auth_proto::proto::nimbus::auth::signup::v1::{
     SignUpErrorCodeProto, SignUpRequestProto, SignUpResponseProto, SignUpSuccessResponseProto,
     sign_up_response_proto::{self},
 };
-use nimbus_auth_shared::errors::ErrorBoxed;
 use prost::Message;
 use tracing::error;
 use zeroize::Zeroizing;
@@ -20,7 +18,7 @@ use zeroize::Zeroizing;
 use crate::{
     converters::{convert_access_token_into_proto, convert_user_into_proto},
     web_api::{
-        extractors::client_extractor::{Client, ClientType},
+        extractors::client_extractor::Client,
         responses::proto::ProtoResponse,
     },
 };

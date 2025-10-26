@@ -16,7 +16,7 @@ use crate::{
     entities::{
         Entity,
         keypair::{Active, Expiring, KeyPair, SomeKeyPair},
-        user::{User, value_objects::user_name::UserName},
+        user::value_objects::user_name::UserName,
     },
     value_objects::{
         access_token::errors::{ExtractKeyIdError, SignAccessTokenError, VerifyError},

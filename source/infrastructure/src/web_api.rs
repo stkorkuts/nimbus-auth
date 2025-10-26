@@ -1,6 +1,5 @@
 use axum::{
     Router,
-    extract::{Path, State},
     routing::{get, post},
 };
 use nimbus_auth_application::use_cases::UseCases;
