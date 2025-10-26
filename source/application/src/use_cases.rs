@@ -16,6 +16,8 @@ use crate::{
 };
 
 mod dtos;
+pub use dtos::access_token::*;
+pub use dtos::session::*;
 pub use dtos::user::*;
 
 mod authorize;

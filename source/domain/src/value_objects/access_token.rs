@@ -10,6 +10,7 @@ use nimbus_auth_shared::{
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use ulid::Ulid;
+use zeroize::Zeroizing;
 
 use crate::{
     entities::{
@@ -64,7 +65,10 @@ impl AccessToken {
         &self.expires_at
     }
 
-    pub fn sign(&self, keypair: &KeyPair<Active>) -> Result<String, SignAccessTokenError> {
+    pub fn sign(
+        &self,
+        keypair: &KeyPair<Active>,
+    ) -> Result<Zeroizing<String>, SignAccessTokenError> {
         let mut header = Header::new(jsonwebtoken::Algorithm::EdDSA);
         header.kid = Some(keypair.id().to_string());
 
@@ -83,7 +87,7 @@ impl AccessToken {
 
         let token = encode(&header, &claims, &key).map_err(SignAccessTokenError::Encoding)?;
 
-        Ok(token)
+        Ok(Zeroizing::new(token))
     }
 
     pub fn extract_keypair_id(

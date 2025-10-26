@@ -6,13 +6,18 @@ use nimbus_auth_domain::{
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
 use ulid::Ulid;
+use zeroize::Zeroizing;
 
 use crate::{
     services::{
         keypair_repository::KeyPairRepository, session_repository::SessionRepository,
         time_service::TimeService, user_repository::UserRepository,
     },
-    use_cases::{RefreshRequest, RefreshResponse, UserClaimsDto, refresh::errors::RefreshError},
+    use_cases::{
+        RefreshRequest, RefreshResponse, UserClaimsDto,
+        dtos::{access_token::AccessTokenDto, session::SessionDto},
+        refresh::errors::RefreshError,
+    },
 };
 
 pub mod errors;
@@ -70,9 +75,21 @@ pub async fn handle_refresh(
 
     transactional_session_repository.commit().await?;
 
-    Ok(RefreshResponse {
-        user: UserClaimsDto::from(user.claims()),
-        session_id: new_active_session.id().to_string(),
+    let user_dto = UserClaimsDto::from(user.claims());
+
+    let session_dto = SessionDto {
+        session_id: Zeroizing::new(new_active_session.id().to_string()),
+        session_expires_at_unix_timestamp: new_active_session.expires_at().unix_timestamp(),
+    };
+
+    let access_token_dto = AccessTokenDto {
         signed_access_token,
+        signed_access_token_expires_at_unix_timestamp: access_token.expires_at().unix_timestamp(),
+    };
+
+    Ok(RefreshResponse {
+        user: user_dto,
+        session: session_dto,
+        access_token: access_token_dto,
     })
 }

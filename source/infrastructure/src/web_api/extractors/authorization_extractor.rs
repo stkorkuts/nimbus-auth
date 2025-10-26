@@ -14,7 +14,6 @@ pub struct Authorization(pub Result<UserClaimsDto, AuthorizationExtractorError>)
 impl FromRequestParts<UseCases> for Authorization {
     type Rejection = (StatusCode, &'static str);
 
-    #[doc = " Perform the extraction."]
     fn from_request_parts(
         parts: &mut Parts,
         state: &UseCases,

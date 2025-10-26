@@ -24,7 +24,8 @@ ed25519-dalek.workspace = true
 prost.workspace = true
 
 # Crate specific dependencies
-axum = {version = "0.8.4", default-features = false, features = ["http1", "http2", "tokio", "tracing"] }
+axum = { version = "0.8.4", default-features = false, features = ["http1", "http2", "tokio", "tracing"] }
+axum-extra = { version = "0.10.3", features = ["cookie"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.6", features = ["cors", "trace", "set-header"] }
 sqlx = { version = "0.8", features = [ "postgres", "sqlite", "runtime-tokio", "tls-native-tls", "time" ] }

@@ -1,6 +1,9 @@
 use zeroize::Zeroizing;
 
-use crate::use_cases::UserClaimsDto;
+use crate::use_cases::{
+    UserClaimsDto,
+    dtos::{access_token::AccessTokenDto, session::SessionDto},
+};
 
 pub struct SignUpRequest<'a> {
     pub user_name: &'a str,
@@ -9,6 +12,6 @@ pub struct SignUpRequest<'a> {
 
 pub struct SignUpResponse {
     pub user: UserClaimsDto,
-    pub session_id: String,
-    pub signed_access_token: String,
+    pub session: SessionDto,
+    pub access_token: AccessTokenDto,
 }

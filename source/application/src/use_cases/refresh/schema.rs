@@ -1,4 +1,7 @@
-use crate::use_cases::UserClaimsDto;
+use crate::use_cases::{
+    UserClaimsDto,
+    dtos::{access_token::AccessTokenDto, session::SessionDto},
+};
 
 pub struct RefreshRequest {
     pub session_id: String,
@@ -6,6 +9,6 @@ pub struct RefreshRequest {
 
 pub struct RefreshResponse {
     pub user: UserClaimsDto,
-    pub session_id: String,
-    pub signed_access_token: String,
+    pub session: SessionDto,
+    pub access_token: AccessTokenDto,
 }

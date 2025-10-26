@@ -6,6 +6,7 @@ use nimbus_auth_domain::entities::{
     user::value_objects::{password::Password, user_name::UserName},
 };
 use nimbus_auth_shared::types::{AccessTokenExpirationSeconds, SessionExpirationSeconds};
+use zeroize::Zeroizing;
 
 use crate::{
     services::{
@@ -14,6 +15,7 @@ use crate::{
     },
     use_cases::{
         UserClaimsDto,
+        dtos::{access_token::AccessTokenDto, session::SessionDto},
         signin::{
             errors::SignInError,
             schema::{SignInRequest, SignInResponse},
@@ -77,9 +79,21 @@ pub async fn handle_signin<'a>(
 
     transactional_session_repository.commit().await?;
 
-    Ok(SignInResponse {
-        user: UserClaimsDto::from(user.claims()),
-        session_id: session.id().to_string(),
+    let user_dto = UserClaimsDto::from(user.claims());
+
+    let session_dto = SessionDto {
+        session_id: Zeroizing::new(session.id().to_string()),
+        session_expires_at_unix_timestamp: session.expires_at().unix_timestamp(),
+    };
+
+    let access_token_dto = AccessTokenDto {
         signed_access_token,
+        signed_access_token_expires_at_unix_timestamp: access_token.expires_at().unix_timestamp(),
+    };
+
+    Ok(SignInResponse {
+        user: user_dto,
+        session: session_dto,
+        access_token: access_token_dto,
     })
 }
