@@ -27,6 +27,11 @@ pub const PASSWORD_MAX_LENGTH_INCLUSIVE: usize = 32;
 pub const USERNAME_MIN_LENGTH_INCLUSIVE: usize = 4;
 pub const USERNAME_MAX_LENGTH_INCLUSIVE: usize = 32;
 
+pub const CLIENT_TYPE_HEADER_NAME: &str = "x-client-type";
+pub const CLIENT_TYPE_BROWSER_HEADER_VALUE: &str = "browser";
+pub const CLIENT_TYPE_MOBILE_HEADER_VALUE: &str = "mobile";
+pub const CLIENT_TYPE_PC_HEADER_VALUE: &str = "pc";
+
 pub const SESSION_COOKIE_NAME: &str = "session_id";
 pub const SESSION_COOKIE_EXP_TIMESTAMP_NAME: &str = "session_exp_timestamp";
 

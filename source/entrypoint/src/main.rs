@@ -26,7 +26,7 @@ use tokio::io;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::oneshot;
 use tracing::subscriber;
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::{EnvFilter, FmtSubscriber, Registry, fmt, layer::SubscriberExt};
 
 use crate::errors::EntryPointError;
 
@@ -134,7 +134,9 @@ fn get_config_from_env() -> Result<AppConfig, ErrorBoxed> {
 }
 
 fn configure_tracing(_: &AppConfig) -> Result<(), ErrorBoxed> {
-    let subscriber = FmtSubscriber::builder().finish();
+    let subscriber = Registry::default()
+        .with(fmt::Layer::default())
+        .with(EnvFilter::new("debug"));
 
     subscriber::set_global_default(subscriber)?;
 

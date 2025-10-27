@@ -39,7 +39,7 @@ impl WebApi {
             .route("/keypairs/rotate", post(handle_rotate_keypairs))
             .route("/public_keys/active", get(handle_get_active_public_key))
             .route(
-                "/public_keys/by_id/:key_id",
+                "/public_keys/by_id/{key_id}",
                 get(handle_get_public_key_by_id),
             )
             .route("/auth/signup", post(handle_signup))

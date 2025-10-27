@@ -1,8 +1,12 @@
 use axum::{
     extract::FromRequestParts,
-    http::{HeaderMap, StatusCode, request::Parts},
+    http::{HeaderMap, StatusCode, header::USER_AGENT, request::Parts},
 };
 use nimbus_auth_application::use_cases::UseCases;
+use nimbus_auth_shared::constants::{
+    CLIENT_TYPE_BROWSER_HEADER_VALUE, CLIENT_TYPE_HEADER_NAME, CLIENT_TYPE_MOBILE_HEADER_VALUE,
+    CLIENT_TYPE_PC_HEADER_VALUE,
+};
 
 pub enum ClientType {
     Browser,
@@ -28,19 +32,19 @@ impl Client {
         headers: &HeaderMap,
     ) -> Result<ClientType, <Client as FromRequestParts<UseCases>>::Rejection> {
         if let Some(header_value) = headers
-            .get("x-client-type")
+            .get(CLIENT_TYPE_HEADER_NAME)
             .and_then(|header_value| header_value.to_str().ok())
         {
             return match header_value.to_ascii_lowercase().as_str() {
-                "browser" => Ok(ClientType::Browser),
-                "mobile" => Ok(ClientType::Mobile),
-                "pc" => Ok(ClientType::PC),
+                CLIENT_TYPE_BROWSER_HEADER_VALUE => Ok(ClientType::Browser),
+                CLIENT_TYPE_MOBILE_HEADER_VALUE => Ok(ClientType::Mobile),
+                CLIENT_TYPE_PC_HEADER_VALUE => Ok(ClientType::PC),
                 _ => Err((StatusCode::BAD_REQUEST, "client type header is not found")),
             };
         }
 
         if let Some(user_agent) = headers
-            .get("user-agent")
+            .get(USER_AGENT)
             .and_then(|header_value| header_value.to_str().ok())
         {
             let ua_lc = user_agent.to_ascii_lowercase();

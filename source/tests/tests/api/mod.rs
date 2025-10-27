@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use nimbus_auth_application::use_cases::{UseCases, UseCasesConfig, UseCasesServices};
 use nimbus_auth_domain::entities::{keypair::SomeKeyPair, session::SomeSession, user::User};
@@ -16,10 +16,14 @@ use nimbus_auth_tests::mocks::{
         user_repository::MockUserRepository,
     },
 };
-use tokio::{spawn, sync::oneshot};
+use tokio::{spawn, sync::oneshot, time::sleep};
+use tracing::subscriber;
+use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt};
 
 mod signin;
 mod signup;
+
+const ACTION_RUN_DELAY_MS: u64 = 1000u64;
 
 struct ApiTestState<'a> {
     pub users: Option<Vec<User>>,
@@ -32,6 +36,8 @@ async fn run_api_test<Fut: Future<Output = Result<(), ErrorBoxed>>, TAction: FnO
     config: AppConfig,
     state: ApiTestState<'static>,
 ) -> Result<(), ErrorBoxed> {
+    configure_tracing(&config);
+
     let use_cases = build_use_cases(&config, state).await?;
 
     let (shutdown_signal_sender, shutdown_signal_receiver) = oneshot::channel();
@@ -40,6 +46,9 @@ async fn run_api_test<Fut: Future<Output = Result<(), ErrorBoxed>>, TAction: FnO
         WebApi::serve(&config, use_cases, shutdown_signal_receiver).await?;
         Ok::<(), ErrorBoxed>(())
     });
+
+    // todo!() - remove this one and add retry policy to test clients
+    sleep(Duration::from_millis(ACTION_RUN_DELAY_MS)).await;
 
     let test_result = action().await;
 
@@ -82,4 +91,13 @@ async fn build_use_cases(
     };
 
     Ok(UseCases::new(use_cases_config, use_cases_services))
+}
+
+fn configure_tracing(_: &AppConfig) {
+    let subscriber = Registry::default()
+        .with(fmt::Layer::default())
+        .with(EnvFilter::new("debug"));
+
+    subscriber::set_global_default(subscriber)
+        .expect("tracing should have been configured successfully");
 }
