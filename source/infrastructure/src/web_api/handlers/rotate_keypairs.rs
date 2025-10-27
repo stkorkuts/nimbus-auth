@@ -12,23 +12,8 @@ use crate::web_api::{
 
 pub async fn handle_rotate_keypairs(
     State(use_cases): State<UseCases>,
-    Authorization(auth_result): Authorization,
+    Authorization(user): Authorization,
 ) -> impl IntoResponse {
-    let user = match auth_result {
-        Ok(user) => user,
-        Err(err) => {
-            error!("error extracting authorization data in handle_rotate_keypairs handler: {err}");
-            return ProtoResponse::new(
-                StatusCode::UNAUTHORIZED,
-                RotateKeypairsResponseProto {
-                    result: Some(Result::Error(
-                        RotateKeypairsErrorCodeProto::Unauthorized.into(),
-                    )),
-                },
-            );
-        }
-    };
-
     let result = use_cases
         .rotate_keypairs(RotateKeyPairsRequest { user })
         .await;

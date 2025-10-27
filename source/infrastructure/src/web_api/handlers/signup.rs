@@ -59,7 +59,7 @@ pub async fn handle_signup(
         {
             Ok(response_with_session_headers) => response_with_session_headers,
             Err(err) => {
-                error!("internal error in handle_signup (handle_successful_signup): {err}");
+                error!("internal error in handle_signup: {err}");
                 ProtoResponse::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     SignUpResponseProto {

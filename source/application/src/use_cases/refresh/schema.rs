@@ -3,8 +3,8 @@ use crate::use_cases::{
     dtos::{access_token::AccessTokenDto, session::SessionDto},
 };
 
-pub struct RefreshRequest {
-    pub session_id: String,
+pub struct RefreshRequest<'a> {
+    pub session_id: &'a str,
 }
 
 pub struct RefreshResponse {

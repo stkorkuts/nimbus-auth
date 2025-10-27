@@ -133,7 +133,10 @@ impl UseCases {
         handle_get_public_key(request, self.services.keypair_repository.clone()).await
     }
 
-    pub async fn refresh(&self, request: RefreshRequest) -> Result<RefreshResponse, RefreshError> {
+    pub async fn refresh<'a>(
+        &self,
+        request: RefreshRequest<'a>,
+    ) -> Result<RefreshResponse, RefreshError> {
         handle_refresh(
             request,
             self.services.user_repository.clone(),

@@ -21,7 +21,7 @@ use crate::{
         },
     },
     value_objects::{
-        access_token::{AccessToken, errors::VerifyError},
+        access_token::{AccessToken, errors::VerificationError},
         identifier::Identifier,
     },
 };
@@ -109,7 +109,7 @@ fn encode_decode_with_wrong_key() {
         .expect("token should have been signed successfully");
 
     let result = AccessToken::verify_with_active(&signed_token, &wrong_keypair);
-    assert!(matches!(result, Err(VerifyError::KeyPairIdsDoNotMatch)));
+    assert!(matches!(result, Err(VerificationError::KeyPairIdsDoNotMatch)));
 }
 
 #[test]
@@ -142,5 +142,5 @@ fn modified_token() {
     let tampered_token = token_parts.join(".");
 
     let result = AccessToken::verify_with_active(&tampered_token, &keypair);
-    assert!(matches!(result, Err(VerifyError::Decoding(..))));
+    assert!(matches!(result, Err(VerificationError::Decoding(..))));
 }

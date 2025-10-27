@@ -82,7 +82,7 @@ pub async fn handle_signin<'a>(
     let user_dto = UserClaimsDto::from(user.claims());
 
     let session_dto = SessionDto {
-        session_id: Zeroizing::new(session.id().to_string()),
+        session_id: session.id().to_string(),
         session_expires_at_unix_timestamp: session.expires_at().unix_timestamp(),
     };
 

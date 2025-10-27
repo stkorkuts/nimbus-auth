@@ -1,4 +1,6 @@
-use nimbus_auth_domain::value_objects::access_token::errors::{ExtractKeyIdError, VerifyError};
+use nimbus_auth_domain::value_objects::access_token::errors::{
+    ExtractKeyIdError, VerificationError,
+};
 use thiserror::Error;
 
 use crate::services::keypair_repository::errors::KeyPairRepositoryError;
@@ -16,5 +18,5 @@ pub enum AuthorizationError {
     #[error("keypair that has been used to sign a token revoked")]
     KeyPairRevoked,
     #[error(transparent)]
-    VerifyAccessToken(#[from] VerifyError),
+    AccessTokenVerification(#[from] VerificationError),
 }

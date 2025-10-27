@@ -26,3 +26,9 @@ pub const PASSWORD_MAX_LENGTH_INCLUSIVE: usize = 32;
 
 pub const USERNAME_MIN_LENGTH_INCLUSIVE: usize = 4;
 pub const USERNAME_MAX_LENGTH_INCLUSIVE: usize = 32;
+
+pub const SESSION_COOKIE_NAME: &str = "session_id";
+pub const SESSION_COOKIE_EXP_TIMESTAMP_NAME: &str = "session_exp_timestamp";
+
+pub const SESSION_HEADER_NAME: &str = "x-session-id";
+pub const SESSION_HEADER_EXP_TIMESTAMP_NAME: &str = "x-session-exp-timestamp";

@@ -23,8 +23,8 @@ use crate::{
 pub mod errors;
 pub mod schema;
 
-pub async fn handle_refresh(
-    RefreshRequest { session_id }: RefreshRequest,
+pub async fn handle_refresh<'a>(
+    RefreshRequest { session_id }: RefreshRequest<'a>,
     user_repository: Arc<dyn UserRepository>,
     session_repository: Arc<dyn SessionRepository>,
     keypair_repository: Arc<dyn KeyPairRepository>,
@@ -33,7 +33,7 @@ pub async fn handle_refresh(
     access_token_exp_seconds: AccessTokenExpirationSeconds,
 ) -> Result<RefreshResponse, RefreshError> {
     let session = session_repository
-        .get_by_id(&Identifier::from(Ulid::from_string(&session_id)?))
+        .get_by_id(&Identifier::from(Ulid::from_string(session_id)?))
         .await?
         .ok_or(RefreshError::SessionIsNotFound)?;
 
@@ -78,7 +78,7 @@ pub async fn handle_refresh(
     let user_dto = UserClaimsDto::from(user.claims());
 
     let session_dto = SessionDto {
-        session_id: Zeroizing::new(new_active_session.id().to_string()),
+        session_id: new_active_session.id().to_string(),
         session_expires_at_unix_timestamp: new_active_session.expires_at().unix_timestamp(),
     };
 

@@ -21,7 +21,7 @@ pub enum ExtractKeyIdError {
 }
 
 #[derive(Debug, Error)]
-pub enum VerifyError {
+pub enum VerificationError {
     #[error(transparent)]
     ExtractKeyId(#[from] ExtractKeyIdError),
     #[error("keypair ids do not match")]

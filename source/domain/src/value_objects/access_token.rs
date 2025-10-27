@@ -19,7 +19,7 @@ use crate::{
         user::value_objects::user_name::UserName,
     },
     value_objects::{
-        access_token::errors::{ExtractKeyIdError, SignAccessTokenError, VerifyError},
+        access_token::errors::{ExtractKeyIdError, SignAccessTokenError, VerificationError},
         identifier::{Identifier, IdentifierOfType},
         user_claims::UserClaims,
     },
@@ -65,10 +65,7 @@ impl AccessToken {
         &self.expires_at
     }
 
-    pub fn sign(
-        &self,
-        keypair: &KeyPair<Active>,
-    ) -> Result<Zeroizing<String>, SignAccessTokenError> {
+    pub fn sign(&self, keypair: &KeyPair<Active>) -> Result<String, SignAccessTokenError> {
         let mut header = Header::new(jsonwebtoken::Algorithm::EdDSA);
         header.kid = Some(keypair.id().to_string());
 
@@ -87,7 +84,7 @@ impl AccessToken {
 
         let token = encode(&header, &claims, &key).map_err(SignAccessTokenError::Encoding)?;
 
-        Ok(Zeroizing::new(token))
+        Ok(token)
     }
 
     pub fn extract_keypair_id(
@@ -104,7 +101,7 @@ impl AccessToken {
     pub fn verify_with_active(
         signed_token: &str,
         keypair: &KeyPair<Active>,
-    ) -> Result<AccessToken, VerifyError> {
+    ) -> Result<AccessToken, VerificationError> {
         AccessToken::verify(
             signed_token,
             keypair.id().clone().as_other_entity(),
@@ -115,7 +112,7 @@ impl AccessToken {
     pub fn verify_with_expiring(
         signed_token: &str,
         keypair: &KeyPair<Expiring>,
-    ) -> Result<AccessToken, VerifyError> {
+    ) -> Result<AccessToken, VerificationError> {
         AccessToken::verify(
             signed_token,
             keypair.id().clone().as_other_entity(),
@@ -127,10 +124,10 @@ impl AccessToken {
         signed_token: &str,
         expected_keypair_id: Identifier<Ulid, SomeKeyPair>,
         public_key_pem: &str,
-    ) -> Result<AccessToken, VerifyError> {
+    ) -> Result<AccessToken, VerificationError> {
         let actual_key_id = Self::extract_keypair_id(signed_token)?;
         if actual_key_id != expected_keypair_id {
-            return Err(VerifyError::KeyPairIdsDoNotMatch);
+            return Err(VerificationError::KeyPairIdsDoNotMatch);
         }
 
         let mut validation = Validation::new(Algorithm::EdDSA);
@@ -140,22 +137,22 @@ impl AccessToken {
         validation.iss = Some(issuer);
 
         let decoding_key = DecodingKey::from_ed_pem(public_key_pem.as_bytes())
-            .map_err(|err| VerifyError::InvalidDecodingKey(err))?;
+            .map_err(|err| VerificationError::InvalidDecodingKey(err))?;
 
         let claims = decode::<Claims>(signed_token, &decoding_key, &validation)
-            .map_err(|err| VerifyError::Decoding(err))?
+            .map_err(|err| VerificationError::Decoding(err))?
             .claims;
 
         let user_id = Identifier::from(
             Ulid::from_string(claims.sub.as_str())
-                .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?,
+                .map_err(|err| VerificationError::InvalidClaims(err.to_string()))?,
         );
         let user_name = UserName::from(claims.name.as_str())
-            .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?;
+            .map_err(|err| VerificationError::InvalidClaims(err.to_string()))?;
         let user_role = UserRole::try_from(claims.role.as_str())
-            .map_err(|err| VerifyError::InvalidClaims(err))?;
+            .map_err(|err| VerificationError::InvalidClaims(err))?;
         let expires_at = OffsetDateTime::from_unix_timestamp(claims.exp as i64)
-            .map_err(|err| VerifyError::InvalidClaims(err.to_string()))?;
+            .map_err(|err| VerificationError::InvalidClaims(err.to_string()))?;
 
         Ok(AccessToken {
             user_claims: UserClaims::new(user_id, user_name, user_role),

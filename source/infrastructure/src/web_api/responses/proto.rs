@@ -11,6 +11,10 @@ use axum_extra::extract::{
     cookie::{Cookie, SameSite},
 };
 use nimbus_auth_application::use_cases::SessionDto;
+use nimbus_auth_shared::constants::{
+    SESSION_COOKIE_EXP_TIMESTAMP_NAME, SESSION_COOKIE_NAME, SESSION_HEADER_EXP_TIMESTAMP_NAME,
+    SESSION_HEADER_NAME,
+};
 use prost::Message;
 
 use crate::web_api::extractors::client_extractor::ClientType;
@@ -55,14 +59,14 @@ impl<T: Message> ProtoResponse<T> {
         match client_type {
             ClientType::Browser => {
                 self.set_cookie(
-                    Cookie::build(("session_id", session.session_id.to_string()))
+                    Cookie::build((SESSION_COOKIE_NAME, session.session_id.to_string()))
                         .http_only(true)
                         .secure(true)
                         .same_site(SameSite::Strict),
                 )
                 .set_cookie(
                     Cookie::build((
-                        "session_exp_timestamp",
+                        SESSION_COOKIE_EXP_TIMESTAMP_NAME,
                         session.session_expires_at_unix_timestamp.to_string(),
                     ))
                     .http_only(true)
@@ -72,11 +76,11 @@ impl<T: Message> ProtoResponse<T> {
             }
             _ => {
                 self.set_header(
-                    HeaderName::from_static("x-session-id"),
+                    HeaderName::from_static(SESSION_HEADER_NAME),
                     HeaderValue::from_str(&session.session_id)?,
                 )
                 .set_header(
-                    HeaderName::from_static("x-session-exp-timestamp"),
+                    HeaderName::from_static(SESSION_HEADER_EXP_TIMESTAMP_NAME),
                     HeaderValue::from_str(&session.session_expires_at_unix_timestamp.to_string())?,
                 );
             }
